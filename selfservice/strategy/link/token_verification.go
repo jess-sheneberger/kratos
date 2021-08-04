@@ -5,15 +5,16 @@ import (
 	"time"
 
 	"github.com/ory/kratos/corp"
+	"github.com/ory/x/randx"
 
 	"github.com/gofrs/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/ory/x/randx"
-
 	"github.com/ory/kratos/identity"
 	"github.com/ory/kratos/selfservice/flow/verification"
 	"github.com/ory/kratos/x"
+
+	"github.com/xlzd/gotp"
 )
 
 type VerificationToken struct {
@@ -54,15 +55,44 @@ func (VerificationToken) TableName(ctx context.Context) string {
 	return corp.ContextualizeTableName(ctx, "identity_verification_tokens")
 }
 
-func NewSelfServiceVerificationToken(address *identity.VerifiableAddress, f *verification.Flow, expiresIn time.Duration) *VerificationToken {
+func NewSelfServiceVerificationToken(useCode bool, address *identity.VerifiableAddress, f *verification.Flow, expiresIn time.Duration) *VerificationToken {
+	var token string
+	if useCode {
+		token = gotp.RandomSecret(16)
+	} else {
+		token = randx.MustString(32, randx.AlphaNum)
+	}
+
 	now := time.Now().UTC()
 	return &VerificationToken{
 		ID:                x.NewUUID(),
-		Token:             randx.MustString(32, randx.AlphaNum),
+		Token:             token,
 		VerifiableAddress: address,
 		ExpiresAt:         now.Add(expiresIn),
 		IssuedAt:          now,
 		FlowID:            uuid.NullUUID{UUID: f.ID, Valid: true}}
+}
+
+func combineSecret(secret, token string) string {
+	return token + secret
+}
+
+func (f *VerificationToken) GetCode(codeSecret string) string {
+	totp := gotp.NewTOTP(combineSecret(codeSecret, f.Token), 6, 86400, nil)
+
+	return totp.Now()
+}
+
+func VerifyTokenCode(codeSecret, token, code string) bool {
+	totp := gotp.NewTOTP(combineSecret(codeSecret, token), 6, 86400, nil)
+
+	if totp.Verify(code, int(time.Now().Unix())) {
+		return true
+	} else if totp.Verify(code, int(time.Now().AddDate(0, 0, -1).Unix())) {
+		return true
+	}
+
+	return false
 }
 
 func (f *VerificationToken) Valid() error {

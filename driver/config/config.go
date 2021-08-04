@@ -50,6 +50,7 @@ const (
 	ViperKeyCourierSMTPFromName                                     = "courier.smtp.from_name"
 	ViperKeySecretsDefault                                          = "secrets.default"
 	ViperKeySecretsCookie                                           = "secrets.cookie"
+	ViperKeySecretsSixDigitCode                                     = "secrets.six_digit_code"
 	ViperKeyPublicBaseURL                                           = "serve.public.base_url"
 	ViperKeyPublicDomainAliases                                     = "serve.public.domain_aliases"
 	ViperKeyPublicPort                                              = "serve.public.port"
@@ -81,6 +82,7 @@ const (
 	ViperKeyCookieDomain                                            = "cookies.domain"
 	ViperKeyCookiePath                                              = "cookies.path"
 	ViperKeySelfServiceStrategyConfig                               = "selfservice.methods"
+	ViperKeySelfServiceSixDigitCodeEnabled                          = "selfservice.six_digit_code_enabled"
 	ViperKeySelfServiceBrowserDefaultReturnTo                       = "selfservice." + DefaultBrowserReturnURL
 	ViperKeyURLsWhitelistedReturnToDomains                          = "selfservice.whitelisted_return_urls"
 	ViperKeySelfServiceRegistrationUI                               = "selfservice.flows.registration.ui_url"
@@ -504,6 +506,10 @@ func (p *Config) SelfServiceStrategy(strategy string) *SelfServiceStrategy {
 	return s
 }
 
+func (p *Config) SelfServiceSixDigitCodeEnabled() bool {
+	return p.p.Bool(ViperKeySelfServiceSixDigitCodeEnabled)
+}
+
 func (p *Config) SecretsDefault() [][]byte {
 	secrets := p.p.Strings(ViperKeySecretsDefault)
 
@@ -532,6 +538,12 @@ func (p *Config) SecretsSession() [][]byte {
 	}
 
 	return result
+}
+
+func (p *Config) SecretsSixDigitCode() []string {
+	secrets := p.p.Strings(ViperKeySecretsSixDigitCode)
+
+	return secrets
 }
 
 func (p *Config) SelfServiceBrowserDefaultReturnTo() *url.URL {

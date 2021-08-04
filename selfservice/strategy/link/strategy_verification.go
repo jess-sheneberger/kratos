@@ -1,6 +1,7 @@
 package link
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -43,6 +44,7 @@ func (s *Strategy) PopulateVerificationMethod(r *http.Request, f *verification.F
 type verificationSubmitPayload struct {
 	Method    string `json:"method" form:"method"`
 	Token     string `json:"token" form:"token"`
+	Code      string `json:"code" form:"code"`
 	CSRFToken string `json:"csrf_token" form:"csrf_token"`
 	Flow      string `json:"flow" form:"flow"`
 	Email     string `json:"email" form:"email"`
@@ -188,6 +190,19 @@ type selfServiceBrowserVerifyParameters struct {
 }
 
 func (s *Strategy) verificationUseToken(w http.ResponseWriter, r *http.Request, body *verificationSubmitPayload) error {
+	if s.d.Config(r.Context()).SelfServiceSixDigitCodeEnabled() {
+		secrets := s.d.Config(r.Context()).SecretsSixDigitCode()
+		verified := false
+		for _, secret := range secrets {
+			if VerifyTokenCode(secret, body.Token, body.Code) {
+				verified = true
+			}
+		}
+		if !verified {
+			return s.handleVerificationError(w, r, nil, body, errors.WithStack(verification.ErrInvalidCode))
+		}
+	}
+
 	token, err := s.d.VerificationTokenPersister().UseVerificationToken(r.Context(), body.Token)
 	if err != nil {
 		if errors.Is(err, sqlcon.ErrNoRows) {
@@ -242,31 +257,46 @@ func (s *Strategy) verificationUseToken(w http.ResponseWriter, r *http.Request, 
 		return s.handleVerificationError(w, r, f, body, err)
 	}
 
-	defaultRedirectURL := s.d.Config(r.Context()).SelfServiceFlowVerificationReturnTo(f.AppendTo(s.d.Config(r.Context()).SelfServiceFlowVerificationUI()))
+	if f.Type == flow.TypeBrowser {
+		defaultRedirectURL := s.d.Config(r.Context()).SelfServiceFlowVerificationReturnTo(f.AppendTo(s.d.Config(r.Context()).SelfServiceFlowVerificationUI()))
 
-	verificationRequestURL, err := urlx.Parse(f.GetRequestURL())
-	if err != nil {
-		s.d.Logger().Debugf("error parsing verification requestURL: %s\n", err)
-		http.Redirect(w, r, defaultRedirectURL.String(), http.StatusFound)
+		verificationRequestURL, err := urlx.Parse(f.GetRequestURL())
+		if err != nil {
+			s.d.Logger().Debugf("error parsing verification requestURL: %s\n", err)
+			http.Redirect(w, r, defaultRedirectURL.String(), http.StatusFound)
+			return errors.WithStack(flow.ErrCompletedByStrategy)
+		}
+		verificationRequest := http.Request{URL: verificationRequestURL}
+
+		returnTo, err := x.SecureRedirectTo(&verificationRequest, defaultRedirectURL,
+			x.SecureRedirectAllowSelfServiceURLs(s.d.Config(r.Context()).SelfPublicURL(r)),
+			x.SecureRedirectAllowURLs(s.d.Config(r.Context()).SelfServiceBrowserWhitelistedReturnToDomains()),
+		)
+		if err != nil {
+			s.d.Logger().Debugf("error parsing redirectTo from verification: %s\n", err)
+			http.Redirect(w, r, defaultRedirectURL.String(), http.StatusFound)
+			return errors.WithStack(flow.ErrCompletedByStrategy)
+		}
+
+		http.Redirect(w, r, returnTo.String(), http.StatusFound)
 		return errors.WithStack(flow.ErrCompletedByStrategy)
 	}
-	verificationRequest := http.Request{URL: verificationRequestURL}
 
-	returnTo, err := x.SecureRedirectTo(&verificationRequest, defaultRedirectURL,
-		x.SecureRedirectAllowSelfServiceURLs(s.d.Config(r.Context()).SelfPublicURL(r)),
-		x.SecureRedirectAllowURLs(s.d.Config(r.Context()).SelfServiceBrowserWhitelistedReturnToDomains()),
-	)
-	if err != nil {
-		s.d.Logger().Debugf("error parsing redirectTo from verification: %s\n", err)
-		http.Redirect(w, r, defaultRedirectURL.String(), http.StatusFound)
-		return errors.WithStack(flow.ErrCompletedByStrategy)
-	}
-
-	http.Redirect(w, r, returnTo.String(), http.StatusFound)
-	return errors.WithStack(flow.ErrCompletedByStrategy)
+	return nil
 }
 
 func (s *Strategy) retryVerificationFlowWithMessage(w http.ResponseWriter, r *http.Request, ft flow.Type, message *text.Message) error {
+
+	if s.d.Config(r.Context()).SelfServiceSixDigitCodeEnabled() {
+		if message.Type == text.Error {
+			s.d.Logger().WithRequest(r).WithField("message", message).Debug("Skipping retry and returning error because six digit verification codes are enabled")
+			return fmt.Errorf(message.Text)
+		} else {
+			s.d.Logger().WithRequest(r).WithField("message", message).Debug("Skipping retry because six digit verification codes are enabled")
+			return nil
+		}
+	}
+
 	s.d.Logger().WithRequest(r).WithField("message", message).Debug("A verification flow is being retried because a validation error occurred.")
 
 	f, err := verification.NewFlow(s.d.Config(r.Context()),

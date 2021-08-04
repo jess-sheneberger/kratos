@@ -101,7 +101,7 @@ func (s *Sender) SendVerificationLink(ctx context.Context, f *verification.Flow,
 		return err
 	}
 
-	token := NewSelfServiceVerificationToken(address, f, s.r.Config(ctx).SelfServiceLinkMethodLifespan())
+	token := NewSelfServiceVerificationToken(s.r.Config(ctx).SelfServiceSixDigitCodeEnabled(), address, f, s.r.Config(ctx).SelfServiceLinkMethodLifespan())
 	if err := s.r.VerificationTokenPersister().CreateVerificationToken(ctx, token); err != nil {
 		return err
 	}
@@ -109,6 +109,8 @@ func (s *Sender) SendVerificationLink(ctx context.Context, f *verification.Flow,
 	if err := s.SendVerificationTokenTo(ctx, f, address, token); err != nil {
 		return err
 	}
+	s.r.Logger().Debugf("DEBUGDEBUG: Setting token on flow to '%s'\n", token.Token)
+	f.Token = token.Token
 	return nil
 }
 
@@ -138,14 +140,36 @@ func (s *Sender) SendVerificationTokenTo(ctx context.Context, f *verification.Fl
 		WithSensitiveField("verification_link_token", token.Token).
 		Info("Sending out verification email with verification link.")
 
-	if err := s.send(ctx, string(address.Via), templates.NewVerificationValid(s.r.Config(ctx),
-		&templates.VerificationValidModel{To: address.Value, VerificationURL: urlx.CopyWithQuery(
-			urlx.AppendPaths(s.r.Config(ctx).SelfPublicURL(nil), verification.RouteSubmitFlow),
-			url.Values{
-				"flow":  {f.ID.String()},
-				"token": {token.Token},
-			}).String()})); err != nil {
-		return err
+	if s.r.Config(ctx).SelfServiceSixDigitCodeEnabled() {
+		code := token.GetCode(s.r.Config(ctx).SecretsSixDigitCode()[0])
+		if err := s.send(ctx, string(address.Via), templates.NewVerificationValidCode(s.r.Config(ctx),
+			&templates.VerificationValidModelCode{
+				To:   address.Value,
+				Code: code,
+				VerificationURL: urlx.CopyWithQuery(
+					s.r.Config(ctx).SelfServiceFlowVerificationUI(),
+					url.Values{
+						"flow":  {f.ID.String()},
+						"token": {token.Token},
+						"code":  {code},
+					}).String(),
+			})); err != nil {
+			return err
+		}
+	} else {
+		if err := s.send(ctx, string(address.Via), templates.NewVerificationValid(s.r.Config(ctx),
+			&templates.VerificationValidModel{
+				To: address.Value,
+				VerificationURL: urlx.CopyWithQuery(
+					s.r.Config(ctx).SelfServiceFlowVerificationUI(),
+					url.Values{
+						"flow":  {f.ID.String()},
+						"token": {token.Token},
+					}).String(),
+			})); err != nil {
+			return err
+		}
+
 	}
 	address.Status = identity.VerifiableAddressStatusSent
 	if err := s.r.PrivilegedIdentityPool().UpdateVerifiableAddress(ctx, address); err != nil {

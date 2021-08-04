@@ -610,6 +610,11 @@
         "default_browser_return_url"
       ],
       "properties": {
+        "six_digit_code_enabled": {
+          "type": "boolean",
+          "title": "Enables six digit codes for verification",
+          "default": false
+        },
         "default_browser_return_url": {
           "$ref": "#/definitions/defaultReturnTo"
         },
@@ -1557,6 +1562,17 @@
             "minLength": 16
           },
           "uniqueItems": true
+        },
+        "six_digit_code": {
+          "type": "array",
+          "title": "Key for generating six digit codes",
+          "description": "The first secret in the array is used for creating six digit codes while all other keys are used to verify six digit codes.",
+          "items": {
+            "type": "string",
+            "minLength": 16
+          },
+          "uniqueItems": true
+
         }
       },
       "additionalProperties": false

@@ -12,11 +12,12 @@ import (
 type TemplateType string
 
 const (
-	TypeRecoveryInvalid     TemplateType = "recovery_invalid"
-	TypeRecoveryValid       TemplateType = "recovery_valid"
-	TypeVerificationInvalid TemplateType = "verification_invalid"
-	TypeVerificationValid   TemplateType = "verification_valid"
-	TypeTestStub            TemplateType = "stub"
+	TypeRecoveryInvalid       TemplateType = "recovery_invalid"
+	TypeRecoveryValid         TemplateType = "recovery_valid"
+	TypeVerificationInvalid   TemplateType = "verification_invalid"
+	TypeVerificationValid     TemplateType = "verification_valid"
+	TypeVerificationValidCode TemplateType = "verification_valid_code"
+	TypeTestStub              TemplateType = "stub"
 )
 
 type EmailTemplate interface {
@@ -37,6 +38,8 @@ func GetTemplateType(t EmailTemplate) (TemplateType, error) {
 		return TypeVerificationInvalid, nil
 	case *template.VerificationValid:
 		return TypeVerificationValid, nil
+	case *template.VerificationValidCode:
+		return TypeVerificationValidCode, nil
 	case *template.TestStub:
 		return TypeTestStub, nil
 	default:
@@ -70,6 +73,12 @@ func NewEmailTemplateFromMessage(c *config.Config, m Message) (EmailTemplate, er
 			return nil, err
 		}
 		return template.NewVerificationValid(c, &t), nil
+	case TypeVerificationValidCode:
+		var t template.VerificationValidModelCode
+		if err := json.Unmarshal(m.TemplateData, &t); err != nil {
+			return nil, err
+		}
+		return template.NewVerificationValidCode(c, &t), nil
 	case TypeTestStub:
 		var t template.TestStubModel
 		if err := json.Unmarshal(m.TemplateData, &t); err != nil {

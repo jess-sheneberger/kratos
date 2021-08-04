@@ -373,5 +373,10 @@ func (h *Handler) submitFlow(w http.ResponseWriter, r *http.Request, ps httprout
 		return
 	}
 
+	// put this token back on the updatedFlow since token won't get persisted
+	if h.d.Config(r.Context()).SelfServiceSixDigitCodeEnabled() {
+		updatedFlow.Token = f.Token
+	}
+
 	h.d.Writer().Write(w, r, updatedFlow)
 }
