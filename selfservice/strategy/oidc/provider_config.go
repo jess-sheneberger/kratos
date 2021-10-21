@@ -60,6 +60,10 @@ type Configuration struct {
 	// Scope specifies optional requested permissions.
 	Scope []string `json:"scope"`
 
+	// Prompt specifies type of prompt to request OIDC provider to display
+	// see: https://stackoverflow.com/questions/14384354/force-google-account-chooser
+	Prompt string `json:"prompt"`
+
 	// Mapper specifies the JSONNet code snippet which uses the OpenID Connect Provider's data (e.g. GitHub or Google
 	// profile information) to hydrate the identity's data.
 	//

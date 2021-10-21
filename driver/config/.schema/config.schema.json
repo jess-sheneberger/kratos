@@ -329,6 +329,14 @@
             ]
           }
         },
+        "prompt": {
+          "type": "string",
+          "examples": [
+            "none",
+            "consent",
+            "select_account"
+          ]
+        },
         "tenant": {
           "title": "Azure AD Tenant",
           "description": "The Azure AD Tenant to use for authentication.",
