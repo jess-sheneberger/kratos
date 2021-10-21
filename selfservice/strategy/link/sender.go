@@ -124,7 +124,7 @@ func (s *Sender) SendRecoveryTokenTo(ctx context.Context, f *recovery.Flow, addr
 		Info("Sending out recovery email with recovery link.")
 	return s.send(ctx, string(address.Via), templates.NewRecoveryValid(s.r.Config(ctx),
 		&templates.RecoveryValidModel{To: address.Value, RecoveryURL: urlx.CopyWithQuery(
-			urlx.AppendPaths(s.r.Config(ctx).SelfPublicURL(nil), recovery.RouteSubmitFlow),
+			s.r.Config(ctx).SelfServiceFlowRecoveryUI(),
 			url.Values{
 				"token": {token.Token},
 				"flow":  {f.ID.String()},
