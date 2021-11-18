@@ -24,6 +24,7 @@ import (
 
 const RouteCollection = "/identities"
 const RouteItem = RouteCollection + "/:id"
+const RouteLookup = "/identity-lookup/:email"
 const RouteKnownCredentials = "/credentials/known"
 
 type (
@@ -50,6 +51,7 @@ func NewHandler(r handlerDependencies) *Handler {
 func (h *Handler) RegisterAdminRoutes(admin *x.RouterAdmin) {
 	admin.GET(RouteCollection, h.list)
 	admin.GET(RouteItem, h.get)
+	admin.GET(RouteLookup, h.lookup)
 	admin.DELETE(RouteItem, h.delete)
 
 	admin.POST(RouteCollection, h.create)
@@ -295,6 +297,26 @@ type adminGetIdentity struct {
 //       500: jsonError
 func (h *Handler) get(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	i, err := h.r.PrivilegedIdentityPool().GetIdentityConfidential(r.Context(), x.ParseUUID(ps.ByName("id")))
+	if err != nil {
+		h.r.Writer().WriteError(w, r, err)
+		return
+	}
+
+	h.r.Writer().Write(w, r, IdentityWithCredentialsMetadataInJSON(*i))
+}
+
+func (h *Handler) lookup(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	va, err := h.r.PrivilegedIdentityPool().FindVerifiableAddressByValue(r.Context(), VerifiableAddressTypeEmail, ps.ByName("email"))
+	if err != nil {
+		h.r.Writer().WriteError(w, r, err)
+		return
+	}
+	if !va.Verified {
+		h.r.Writer().WriteErrorCode(w, r, http.StatusNotFound, errors.Errorf("Email is unverified"))
+		return
+	}
+
+	i, err := h.r.PrivilegedIdentityPool().GetIdentityConfidential(r.Context(), va.IdentityID)
 	if err != nil {
 		h.r.Writer().WriteError(w, r, err)
 		return
