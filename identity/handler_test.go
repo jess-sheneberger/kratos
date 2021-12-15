@@ -465,13 +465,13 @@ func TestHandler(t *testing.T) {
 			email := "password1-foo@ory.sh"
 			passwordIdentity(email)
 
-			res := send(t, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "password"}`))
+			res := send(t, adminTS, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "password"}`))
 			assert.True(t, res.Get("found").Bool(), "should be found")
 			assert.Len(t, res.Get("methods").Array(), 1, "length of methods array should be 1")
 			assert.EqualValues(t, "password", res.Get("methods.0.method").String(), "first method should be password")
 			assert.Empty(t, res.Get("methods.0.provider").String(), "no provider should be specified")
 
-			res = send(t, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "oidc"}`))
+			res = send(t, adminTS, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "oidc"}`))
 			assert.False(t, res.Get("found").Bool(), "should be not found")
 		})
 
@@ -479,7 +479,7 @@ func TestHandler(t *testing.T) {
 			email := "password2-foo@ory.sh"
 			passwordIdentity(email)
 
-			res := send(t, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`"}`))
+			res := send(t, adminTS, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`"}`))
 			assert.True(t, res.Get("found").Bool(), "should be found")
 			assert.Len(t, res.Get("methods").Array(), 1, "length of methods array should be 1")
 			assert.EqualValues(t, "password", res.Get("methods.0.method").String(), "first method should be password")
@@ -489,13 +489,13 @@ func TestHandler(t *testing.T) {
 			email := "oidc1-foo@ory.sh"
 			oidcIdentity(email)
 
-			res := send(t, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "oidc"}`))
+			res := send(t, adminTS, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "oidc"}`))
 			assert.True(t, res.Get("found").Bool(), "should be found")
 			assert.Len(t, res.Get("methods").Array(), 1, "length of methods array should be 1")
 			assert.EqualValues(t, "oidc", res.Get("methods.0.method").String(), "first method should be oidc")
 			assert.EqualValues(t, "google", res.Get("methods.0.provider").String(), "first provider should be google")
 
-			res = send(t, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "password"}`))
+			res = send(t, adminTS, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "password"}`))
 			assert.False(t, res.Get("found").Bool(), "should be not found")
 		})
 
@@ -503,7 +503,7 @@ func TestHandler(t *testing.T) {
 			email := "oidc2-foo@ory.sh"
 			oidcIdentity(email)
 
-			res := send(t, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`"}`))
+			res := send(t, adminTS, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`"}`))
 			assert.True(t, res.Get("found").Bool(), "should be found")
 			assert.Len(t, res.Get("methods").Array(), 1, "length of methods array should be 1")
 			assert.EqualValues(t, "oidc", res.Get("methods.0.method").String(), "first method should be oidc")
@@ -514,7 +514,7 @@ func TestHandler(t *testing.T) {
 			email := "oidcpassword1-foo@ory.sh"
 			dualIdentity(email)
 
-			res := send(t, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`"}`))
+			res := send(t, adminTS, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`"}`))
 			assert.True(t, res.Get("found").Bool(), "should be found")
 			assert.Len(t, res.Get("methods").Array(), 2, "length of methods array should be 2")
 
@@ -526,22 +526,22 @@ func TestHandler(t *testing.T) {
 		t.Run("case=should return found=false when email has no matching identity", func(t *testing.T) {
 			email := "notfound-foo@ory.sh"
 
-			res := send(t, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`"}`))
+			res := send(t, adminTS, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`"}`))
 			assert.False(t, res.Get("found").Bool(), "should be not found")
 
-			res = send(t, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "password"}`))
+			res = send(t, adminTS, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "password"}`))
 			assert.False(t, res.Get("found").Bool(), "should be not found")
 
-			res = send(t, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "oidc"}`))
+			res = send(t, adminTS, "POST", "/credentials/known", http.StatusOK, json.RawMessage(`{"identifier": "`+email+`", "method": "oidc"}`))
 			assert.False(t, res.Get("found").Bool(), "should be not found")
 		})
 
 		t.Run("case=should return status=400 when POST body is in incorrect format", func(t *testing.T) {
-			send(t, "POST", "/credentials/known", http.StatusBadRequest, json.RawMessage(`{}`))
+			send(t, adminTS, "POST", "/credentials/known", http.StatusBadRequest, json.RawMessage(`{}`))
 		})
 
 		t.Run("case=should return status=400 when method is not CredentialsTypeOIDC or CredentialsTypePassword", func(t *testing.T) {
-			send(t, "POST", "/credentials/known", http.StatusBadRequest, json.RawMessage(`{"identifier": "nothing", "method": "neither"}`))
+			send(t, adminTS, "POST", "/credentials/known", http.StatusBadRequest, json.RawMessage(`{"identifier": "nothing", "method": "neither"}`))
 		})
 
 	})
