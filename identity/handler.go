@@ -1,8 +1,8 @@
 package identity
 
 import (
-	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -90,37 +90,6 @@ type knownCredentialsRequest struct {
 	Method     string `json:"method"`
 }
 
-func (h *Handler) knownCredentialsOIDC(ctx context.Context, id string) (bool, []string, error) {
-	address, err := h.r.PrivilegedIdentityPool().FindVerifiableAddressByValue(ctx, VerifiableAddressTypeEmail, id)
-	if err != nil {
-		if errors.Is(err, sqlcon.ErrNoRows) {
-			return false, nil, nil
-		}
-		return false, nil, err
-	}
-
-	identity, err := h.r.PrivilegedIdentityPool().GetIdentityConfidential(ctx, address.IdentityID)
-	if err != nil {
-		if errors.Is(err, sqlcon.ErrNoRows) {
-			return false, nil, nil
-		}
-		return false, nil, err
-	}
-
-	creds, ok := identity.GetCredentials(CredentialsTypeOIDC)
-	if !ok {
-		return false, []string{}, nil
-	}
-
-	providers := gjson.Get(string(creds.Config), "providers")
-	result := []string{}
-	for _, provider := range providers.Array() {
-		result = append(result, provider.Get("provider").String())
-	}
-
-	return true, result, nil
-}
-
 var ErrSpecifyIdentifier = herodot.DefaultError{
 	ErrorField: "must specify identifier",
 	CodeField:  http.StatusBadRequest,
@@ -145,7 +114,7 @@ var ErrInvalidMethod = herodot.DefaultError{
 //       200: knownCredentialsResponse
 //       500: genericError
 func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
+	ctx := r.Context()
 	kcr := knownCredentialsRequest{}
 	if err := jsonx.NewStrictDecoder(r.Body).Decode(&kcr); err != nil {
 		h.r.Writer().WriteErrorCode(w, r, http.StatusBadRequest, errors.WithStack(err))
@@ -162,10 +131,35 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
+	address, err := h.r.PrivilegedIdentityPool().FindVerifiableAddressByValue(ctx, VerifiableAddressTypeEmail, kcr.Identifier)
+	if err != nil {
+		if errors.Is(err, sqlcon.ErrNoRows) {
+			address = nil
+		} else {
+			h.r.Writer().WriteErrorCode(w, r, http.StatusInternalServerError, err)
+			return
+		}
+	}
+		
+	log.Printf("knownCredentials: address: %#v\n", address)
+	var identity *Identity
+	if address != nil {
+		identity, err = h.r.PrivilegedIdentityPool().GetIdentityConfidential(ctx, address.IdentityID)
+		if err != nil {
+			if errors.Is(err, sqlcon.ErrNoRows) {
+				identity = nil
+			} else {
+				h.r.Writer().WriteErrorCode(w, r, http.StatusInternalServerError, err)
+				return	
+			}
+		}
+	}
+
+	log.Printf("knownCredentials: identity: %#v\n", identity)
 	result := knownCredentialsResponse{false, []knownCredentialsMethod{}}
 	if kcr.Method == CredentialsTypePassword.String() || kcr.Method == "" {
 		// if the credentials can be looked up directly by identifier then they're type password
-		_, _, err := h.r.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), CredentialsTypePassword, kcr.Identifier)
+		_, _, err := h.r.PrivilegedIdentityPool().FindByCredentialsIdentifier(ctx, CredentialsTypePassword, kcr.Identifier)
 		if err == nil {
 			result.Found = true
 			result.Methods = append(result.Methods, knownCredentialsMethod{CredentialsTypePassword.String(), ""})
@@ -173,17 +167,16 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 	}
 
 	if kcr.Method == CredentialsTypeOIDC.String() || kcr.Method == "" {
-		found, providers, err := h.knownCredentialsOIDC(r.Context(), kcr.Identifier)
-		if err != nil {
-			h.r.Writer().WriteError(w, r, err)
-			return
-		}
-
-		if found {
-			result.Found = true
-			for _, provider := range providers {
-				result.Methods = append(result.Methods, knownCredentialsMethod{CredentialsTypeOIDC.String(), provider})
+		if identity != nil {
+			creds, ok := identity.GetCredentials(CredentialsTypeOIDC)
+			if ok {
+				providers := gjson.Get(string(creds.Config), "providers")
+				result.Found = true
+				for _, provider := range providers.Array() {
+					result.Methods = append(result.Methods, knownCredentialsMethod{CredentialsTypeOIDC.String(), provider.Get("provider").String()})
+				}	
 			}
+		
 		}
 	}
 
