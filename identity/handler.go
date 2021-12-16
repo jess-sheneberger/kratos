@@ -68,6 +68,8 @@ type knownCredentialsMethod struct {
 	// in: body
 	Method string `json:"method"`
 	// in: body
+	Username string `json:"username,omitempty"`
+	// in: body
 	Provider string `json:"provider,omitempty"`
 }
 
@@ -154,7 +156,7 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 			}
 		}
 	}
-
+	
 	log.Printf("knownCredentials: identity: %#v\n", identity)
 	result := knownCredentialsResponse{false, []knownCredentialsMethod{}}
 	if kcr.Method == CredentialsTypePassword.String() || kcr.Method == "" {
@@ -162,7 +164,22 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 		_, _, err := h.r.PrivilegedIdentityPool().FindByCredentialsIdentifier(ctx, CredentialsTypePassword, kcr.Identifier)
 		if err == nil {
 			result.Found = true
-			result.Methods = append(result.Methods, knownCredentialsMethod{CredentialsTypePassword.String(), ""})
+			result.Methods = append(result.Methods, knownCredentialsMethod{
+				CredentialsTypePassword.String(), 
+				"", 
+				"",
+			})
+		} else {
+			if identity != nil && identity.Credentials != nil {
+				// didn't find the credentials by identifier but we found them via email, so maybe they have a username. 
+				// we should return the username in the response so we can show the user
+				result.Found = true
+				result.Methods = append(result.Methods, knownCredentialsMethod{
+					CredentialsTypePassword.String(), 
+					identity.Credentials[CredentialsTypePassword.String()].Identifiers[0],
+					"",
+				})
+			}
 		}
 	}
 
@@ -173,10 +190,13 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 				providers := gjson.Get(string(creds.Config), "providers")
 				result.Found = true
 				for _, provider := range providers.Array() {
-					result.Methods = append(result.Methods, knownCredentialsMethod{CredentialsTypeOIDC.String(), provider.Get("provider").String()})
+					result.Methods = append(result.Methods, knownCredentialsMethod{
+						CredentialsTypeOIDC.String(), 
+						"", 
+						provider.Get("provider").String(),
+					})
 				}	
 			}
-		
 		}
 	}
 
