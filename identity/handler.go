@@ -2,7 +2,6 @@ package identity
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
@@ -143,7 +142,6 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 		}
 	}
 
-	log.Printf("knownCredentials: address: %v\n", address)
 	var identity *Identity
 	if address != nil {
 		identity, err = h.r.PrivilegedIdentityPool().GetIdentityConfidential(ctx, address.IdentityID)
@@ -157,7 +155,20 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 		}
 	}
 
-	log.Printf("knownCredentials: identity: %v\n", identity)
+	var oidcCreds *Credentials
+	var passwordCreds *Credentials
+	if identity != nil {
+		var ok bool
+		oidcCreds, ok = identity.GetCredentials(CredentialsTypeOIDC)
+		if !ok {
+			oidcCreds = nil
+		}
+		passwordCreds, ok = identity.GetCredentials(CredentialsTypePassword)
+		if !ok {
+			passwordCreds = nil
+		}
+	}
+
 	result := knownCredentialsResponse{false, []knownCredentialsMethod{}}
 	if kcr.Method == CredentialsTypePassword.String() || kcr.Method == "" {
 		// if the credentials can be looked up directly by identifier then they're type password
@@ -170,37 +181,35 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 				"",
 			})
 		} else {
-			creds, ok := identity.GetCredentials(CredentialsTypePassword)
-			if ok {
-				if creds.Identifiers != nil &&
-					len(creds.Identifiers) > 0 {
+			if passwordCreds != nil {
+				if passwordCreds.Identifiers != nil &&
+					len(passwordCreds.Identifiers) > 0 {
 					// didn't find the credentials by identifier but we found them via email, so maybe they have a username.
 					// we should return the username in the response so we can show the user
 					result.Found = true
 					result.Methods = append(result.Methods, knownCredentialsMethod{
 						CredentialsTypePassword.String(),
-						creds.Identifiers[0],
+						passwordCreds.Identifiers[0],
 						"",
 					})
-				} else {
-					// no credentials found, but the identity exists, so this user needs to verify their email
-					// and pick a way to sign in
-					result.Found = true
-					result.Methods = append(result.Methods, knownCredentialsMethod{
-						CredentialsTypeNone.String(),
-						"",
-						"",
-					})
-				}
+				}	
+			} else if oidcCreds == nil {
+				// no password or OIDC credentials found, but the identity exists, so this user needs to verify their email
+				// and pick a way to sign in
+				result.Found = true
+				result.Methods = append(result.Methods, knownCredentialsMethod{
+					CredentialsTypeNone.String(),
+					"",
+					"",
+				})
 			}
 		}
 	}
 
 	if kcr.Method == CredentialsTypeOIDC.String() || kcr.Method == "" {
 		if identity != nil {
-			creds, ok := identity.GetCredentials(CredentialsTypeOIDC)
-			if ok {
-				providers := gjson.Get(string(creds.Config), "providers")
+			if oidcCreds != nil {
+				providers := gjson.Get(string(oidcCreds.Config), "providers")
 				result.Found = true
 				for _, provider := range providers.Array() {
 					result.Methods = append(result.Methods, knownCredentialsMethod{
@@ -209,8 +218,9 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 						provider.Get("provider").String(),
 					})
 				}
-			} else if !result.Found {
-				// identity already exists but no credentials found and we didn't already put this in the result
+			} else if passwordCreds == nil && !result.Found{
+				// no password or OIDC credentials found, but the identity exists, so this user needs to verify their email
+				// and pick a way to sign in
 				result.Found = true
 				result.Methods = append(result.Methods, knownCredentialsMethod{
 					CredentialsTypeNone.String(),
