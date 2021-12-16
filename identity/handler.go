@@ -183,7 +183,14 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 						"",
 					})
 				} else {
-					log.Printf("knownCredentials: no identifiers creds: %v\n", creds)
+					// no credentials found, but the identity exists, so this user needs to verify their email
+					// and pick a way to sign in
+					result.Found = true
+					result.Methods = append(result.Methods, knownCredentialsMethod{
+						CredentialsTypeNone.String(),
+						"",
+						"",
+					})
 				}
 			}
 		}
@@ -202,6 +209,14 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 						provider.Get("provider").String(),
 					})
 				}
+			} else if !result.Found {
+				// identity already exists but no credentials found and we didn't already put this in the result
+				result.Found = true
+				result.Methods = append(result.Methods, knownCredentialsMethod{
+					CredentialsTypeNone.String(),
+					"",
+					"",
+				})
 			}
 		}
 	}

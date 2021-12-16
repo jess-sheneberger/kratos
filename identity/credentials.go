@@ -24,6 +24,7 @@ const (
 	// make sure to add all of these values to the test that ensures they are created during migration
 	CredentialsTypePassword CredentialsType = "password"
 	CredentialsTypeOIDC     CredentialsType = "oidc"
+	CredentialsTypeNone		CredentialsType = "none"
 )
 
 // Credentials represents a specific credential type
