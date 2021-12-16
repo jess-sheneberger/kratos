@@ -142,8 +142,8 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 			return
 		}
 	}
-		
-	log.Printf("knownCredentials: address: %#v\n", address)
+
+	log.Printf("knownCredentials: address: %v\n", address)
 	var identity *Identity
 	if address != nil {
 		identity, err = h.r.PrivilegedIdentityPool().GetIdentityConfidential(ctx, address.IdentityID)
@@ -152,12 +152,12 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 				identity = nil
 			} else {
 				h.r.Writer().WriteErrorCode(w, r, http.StatusInternalServerError, err)
-				return	
+				return
 			}
 		}
 	}
-	
-	log.Printf("knownCredentials: identity: %#v\n", identity)
+
+	log.Printf("knownCredentials: identity: %v\n", identity)
 	result := knownCredentialsResponse{false, []knownCredentialsMethod{}}
 	if kcr.Method == CredentialsTypePassword.String() || kcr.Method == "" {
 		// if the credentials can be looked up directly by identifier then they're type password
@@ -165,20 +165,26 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 		if err == nil {
 			result.Found = true
 			result.Methods = append(result.Methods, knownCredentialsMethod{
-				CredentialsTypePassword.String(), 
-				"", 
+				CredentialsTypePassword.String(),
+				"",
 				"",
 			})
 		} else {
-			if identity != nil && identity.Credentials != nil {
-				// didn't find the credentials by identifier but we found them via email, so maybe they have a username. 
-				// we should return the username in the response so we can show the user
-				result.Found = true
-				result.Methods = append(result.Methods, knownCredentialsMethod{
-					CredentialsTypePassword.String(), 
-					identity.Credentials[CredentialsTypePassword].Identifiers[0],
-					"",
-				})
+			creds, ok := identity.GetCredentials(CredentialsTypePassword)
+			if ok {
+				if creds.Identifiers != nil &&
+					len(creds.Identifiers) > 0 {
+					// didn't find the credentials by identifier but we found them via email, so maybe they have a username.
+					// we should return the username in the response so we can show the user
+					result.Found = true
+					result.Methods = append(result.Methods, knownCredentialsMethod{
+						CredentialsTypePassword.String(),
+						creds.Identifiers[0],
+						"",
+					})
+				} else {
+					log.Printf("knownCredentials: no identifiers creds: %v\n", creds)
+				}
 			}
 		}
 	}
@@ -191,11 +197,11 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 				result.Found = true
 				for _, provider := range providers.Array() {
 					result.Methods = append(result.Methods, knownCredentialsMethod{
-						CredentialsTypeOIDC.String(), 
-						"", 
+						CredentialsTypeOIDC.String(),
+						"",
 						provider.Get("provider").String(),
 					})
-				}	
+				}
 			}
 		}
 	}
