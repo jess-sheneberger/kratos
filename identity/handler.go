@@ -176,7 +176,7 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 				result.Found = true
 				result.Methods = append(result.Methods, knownCredentialsMethod{
 					CredentialsTypePassword.String(), 
-					identity.Credentials[CredentialsTypePassword.String()].Identifiers[0],
+					identity.Credentials[CredentialsTypePassword].Identifiers[0],
 					"",
 				})
 			}
