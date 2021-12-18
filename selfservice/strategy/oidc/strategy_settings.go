@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -304,6 +305,9 @@ func (s *Strategy) initLinkProvider(w http.ResponseWriter, r *http.Request, ctxU
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}
 
+	log.Printf("DEBUGDEBUG: ctxUpdate.Session.AuthenticatedAt: %#v\n", ctxUpdate.Session.AuthenticatedAt)
+	log.Printf("DEBUGDEBUG: ctxUpdate.Session.AuthenticatedAt.Add(s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge()): %#v\n", ctxUpdate.Session.AuthenticatedAt.Add(s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge()))
+	log.Printf("DEBUGDEBUG: time.Now(): %#v\n", time.Now())
 	if ctxUpdate.Session.AuthenticatedAt.Add(s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge()).Before(time.Now()) {
 		return s.handleSettingsError(w, r, ctxUpdate, p, errors.WithStack(settings.NewFlowNeedsReAuth()))
 	}
