@@ -805,6 +805,11 @@ func (p *Config) SelfServiceFlowRecoveryAfterHooks(strategy string) []SelfServic
 }
 
 func (p *Config) SelfServiceFlowSettingsPrivilegedSessionMaxAge() time.Duration {
+	log.Printf("DEBUGDEBUG: ViperKeySelfServiceSettingsPrivilegedAuthenticationAfter = %s\n", 
+		p.p.String(ViperKeySelfServiceSettingsPrivilegedAuthenticationAfter))
+	log.Printf("DEBUGDEBUG: p.p.DurationF(ViperKeySelfServiceSettingsPrivilegedAuthenticationAfter, time.Hour) = %#v\n", 
+		p.p.DurationF(ViperKeySelfServiceSettingsPrivilegedAuthenticationAfter, time.Hour))
+
 	return p.p.DurationF(ViperKeySelfServiceSettingsPrivilegedAuthenticationAfter, time.Hour)
 }
 
