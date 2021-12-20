@@ -184,27 +184,29 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 				"",
 			})
 		} else {
-			if passwordCreds != nil {
-				if passwordCreds.Identifiers != nil &&
-					len(passwordCreds.Identifiers) > 0 {
-					// didn't find the credentials by identifier but we found them via email, so maybe they have a username.
-					// we should return the username in the response so we can show the user
+			if identity != nil {
+				if passwordCreds != nil {
+					if passwordCreds.Identifiers != nil &&
+						len(passwordCreds.Identifiers) > 0 {
+						// didn't find the credentials by identifier but we found them via email, so maybe they have a username.
+						// we should return the username in the response so we can show the user
+						result.Found = true
+						result.Methods = append(result.Methods, knownCredentialsMethod{
+							CredentialsTypePassword.String(),
+							passwordCreds.Identifiers[0],
+							"",
+						})
+					}	
+				} else if oidcCreds == nil {
+					// no password or OIDC credentials found, but the identity exists, so this user needs to verify their email
+					// and pick a way to sign in
 					result.Found = true
 					result.Methods = append(result.Methods, knownCredentialsMethod{
-						CredentialsTypePassword.String(),
-						passwordCreds.Identifiers[0],
+						CredentialsTypeNone.String(),
+						"",
 						"",
 					})
-				}	
-			} else if oidcCreds == nil {
-				// no password or OIDC credentials found, but the identity exists, so this user needs to verify their email
-				// and pick a way to sign in
-				result.Found = true
-				result.Methods = append(result.Methods, knownCredentialsMethod{
-					CredentialsTypeNone.String(),
-					"",
-					"",
-				})
+				}
 			}
 		}
 	}
