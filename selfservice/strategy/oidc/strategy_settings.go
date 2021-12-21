@@ -401,6 +401,7 @@ func (s *Strategy) unlinkProvider(w http.ResponseWriter, r *http.Request, ctxUpd
 	}
 
 	availableProviders, err := s.linkedProviders(r.Context(), r, providers, i)
+	log.Printf("DEBUGDEBUG ParseCredentials availableProviders: %v\n", availableProviders)
 	if err != nil {
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}
@@ -408,6 +409,9 @@ func (s *Strategy) unlinkProvider(w http.ResponseWriter, r *http.Request, ctxUpd
 	var cc CredentialsConfig
 	creds, err := i.ParseCredentials(s.ID(), &cc)
 	if err != nil {
+		log.Printf("DEBUGDEBUG ParseCredentials error: %v\n", err)
+		log.Printf("DEBUGDEBUG ParseCredentials creds: %v\n", creds)
+		log.Printf("DEBUGDEBUG ParseCredentials cc: %v\n", cc)
 		return s.handleSettingsError(w, r, ctxUpdate, p, errors.WithStack(UnknownConnectionValidationError))
 	}
 
