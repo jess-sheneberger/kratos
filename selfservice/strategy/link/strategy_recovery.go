@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -262,8 +263,20 @@ func (s *Strategy) recoveryIssueSession(w http.ResponseWriter, r *http.Request, 
 		return s.HandleRecoveryError(w, r, f, nil, err)
 	}
 
-	log.Printf("DEBUGDEBUG: recovered.VerifiableAddresses: %#v\n", recovered.VerifiableAddresses)
-	log.Printf("DEBUGDEBUG: recovered.RecoveryAddresses: %#v\n", recovered.RecoveryAddresses)
+	log.Printf("DEBUGDEBUG: Checking if we should verify an address during recovery...\n")
+	if len(recovered.VerifiableAddresses) == 1 &&
+		len(recovered.RecoveryAddresses) == 1 && 
+		strings.ToLower(recovered.VerifiableAddresses[0].Value) == strings.ToLower(recovered.RecoveryAddresses[0].Value) {
+		
+		log.Printf("DEBUGDEBUG: Marking address %s as verified\n", recovered.VerifiableAddresses[0].Value)
+	   	recovered.VerifiableAddresses[0].Verified = true
+	   	err = s.d.PrivilegedIdentityPool().UpdateVerifiableAddress(r.Context(), &recovered.VerifiableAddresses[0])
+	   	if err != nil {
+			log.Printf("DEBUGDEBUG: Error marking address %s as verified: %v\n", recovered.VerifiableAddresses[0].Value, err)
+			return s.HandleRecoveryError(w, r, f, nil, err)
+	   	}
+		log.Printf("DEBUGDEBUG: Done marking address %s as verified\n", recovered.VerifiableAddresses[0].Value)
+	}
 
 	f.UI.Messages.Clear()
 	f.State = recovery.StatePassedChallenge
