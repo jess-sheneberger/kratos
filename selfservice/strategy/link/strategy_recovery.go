@@ -1,6 +1,7 @@
 package link
 
 import (
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -260,6 +261,9 @@ func (s *Strategy) recoveryIssueSession(w http.ResponseWriter, r *http.Request, 
 	if err != nil {
 		return s.HandleRecoveryError(w, r, f, nil, err)
 	}
+
+	log.Printf("DEBUGDEBUG: recovered.VerifiableAddresses: %#v\n", recovered.VerifiableAddresses)
+	log.Printf("DEBUGDEBUG: recovered.RecoveryAddresses: %#v\n", recovered.RecoveryAddresses)
 
 	f.UI.Messages.Clear()
 	f.State = recovery.StatePassedChallenge
