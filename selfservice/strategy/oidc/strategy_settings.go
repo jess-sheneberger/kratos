@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
@@ -305,10 +304,6 @@ func (s *Strategy) initLinkProvider(w http.ResponseWriter, r *http.Request, ctxU
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}
 
-	log.Printf("DEBUGDEBUG: ctxUpdate.Session.AuthenticatedAt: %#v\n", ctxUpdate.Session.AuthenticatedAt)
-	log.Printf("DEBUGDEBUG: s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge(): %#v\n", s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge())
-	log.Printf("DEBUGDEBUG: ctxUpdate.Session.AuthenticatedAt.Add(s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge()): %#v\n", ctxUpdate.Session.AuthenticatedAt.Add(s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge()))
-	log.Printf("DEBUGDEBUG: time.Now(): %#v\n", time.Now())
 	if ctxUpdate.Session.AuthenticatedAt.Add(s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge()).Before(time.Now()) {
 		return s.handleSettingsError(w, r, ctxUpdate, p, errors.WithStack(settings.NewFlowNeedsReAuth()))
 	}
@@ -401,7 +396,6 @@ func (s *Strategy) unlinkProvider(w http.ResponseWriter, r *http.Request, ctxUpd
 	}
 
 	availableProviders, err := s.linkedProviders(r.Context(), r, providers, i)
-	log.Printf("DEBUGDEBUG ParseCredentials availableProviders: %v\n", availableProviders)
 	if err != nil {
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}
@@ -409,9 +403,6 @@ func (s *Strategy) unlinkProvider(w http.ResponseWriter, r *http.Request, ctxUpd
 	var cc CredentialsConfig
 	creds, err := i.ParseCredentials(s.ID(), &cc)
 	if err != nil {
-		log.Printf("DEBUGDEBUG ParseCredentials error: %v\n", err)
-		log.Printf("DEBUGDEBUG ParseCredentials creds: %v\n", creds)
-		log.Printf("DEBUGDEBUG ParseCredentials cc: %v\n", cc)
 		return s.handleSettingsError(w, r, ctxUpdate, p, errors.WithStack(UnknownConnectionValidationError))
 	}
 
