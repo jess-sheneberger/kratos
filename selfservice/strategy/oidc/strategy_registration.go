@@ -178,17 +178,14 @@ func (s *Strategy) processRegistration(w http.ResponseWriter, r *http.Request, a
 		i.Traits = []byte(traits.Raw)
 	}
 
-	log.Printf("DEBUG: oidc claim: email verified: %v", claims.EmailVerified)
-	if claims.EmailVerified {
-		i.VerifiableAddresses = append(i.VerifiableAddresses, identity.VerifiableAddress{
-			ID:         x.NewUUID(),
-			Value:      claims.Email,
-			Verified:   true,
-			Via:        "email",
-			Status:     identity.VerifiableAddressStatusCompleted,
-			IdentityID: i.GetID(),
-		})
-	}
+	i.VerifiableAddresses = append(i.VerifiableAddresses, identity.VerifiableAddress{
+		ID:         x.NewUUID(),
+		Value:      claims.Email,
+		Verified:   true,
+		Via:        "email",
+		Status:     identity.VerifiableAddressStatusCompleted,
+		IdentityID: i.GetID(),
+	})
 	log.Printf("DEBUG: verifiable addresses: %v", i.VerifiableAddresses)
 
 	s.d.Logger().
