@@ -66,6 +66,10 @@ type Flow struct {
 
 	// CSRFToken contains the anti-csrf token associated with this flow. Only set for browser flows.
 	CSRFToken string    `json:"-" db:"csrf_token"`
+
+	// VerificationToken is the token for verification if using six digit codes
+	VerificationToken string `json:"-" faker:"-" db:"-"`
+
 	NID       uuid.UUID `json:"-"  faker:"-" db:"nid"`
 }
 

@@ -1,6 +1,7 @@
 package hook
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/ory/kratos/driver/config"
@@ -72,6 +73,12 @@ func (e *Verifier) do(r *http.Request, i *identity.Identity, f flow.Flow) error 
 		if err := e.r.LinkSender().SendVerificationTokenTo(r.Context(), verificationFlow, address, token); err != nil {
 			return err
 		}
+
+		if registrationFlow, ok := f.(*registration.Flow); ok {
+			log.Printf("DEBUGDEBUG: Setting verification token on registration flow to '%s'\n", token.Token)
+			registrationFlow.VerificationToken = token.Token
+		}
+
 	}
 	return nil
 }

@@ -21,6 +21,12 @@ type APIFlowResponse struct {
 	// The session token is only issued for API flows, not for Browser flows!
 	Token string `json:"session_token,omitempty"`
 
+	// The Verification Token
+	//
+	// Returned when using six digit codes for verification
+	// This is only available for API flows, not for Browser flows!
+	VerificationToken string `json:"verification_token,omitempty"`
+
 	// The Session
 	//
 	// This field is only set when the session hook is configured as a post-registration hook.
