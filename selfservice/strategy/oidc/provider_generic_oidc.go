@@ -3,6 +3,7 @@ package oidc
 import (
 	"context"
 	"net/url"
+	"log"
 
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
@@ -79,6 +80,7 @@ func (g *ProviderGenericOIDC) AuthCodeURLOptions(r ider) []oauth2.AuthCodeOption
 		options = append(options, oauth2.SetAuthURLParam("prompt", "login"))
 	}
 
+	log.Printf("ProviderGenericOIDC.AuthCodeURLOptions(): loginHint: '%s'\n", loginHint(r))
 	if loginHint(r) != "" {
 		options = append(options, oauth2.SetAuthURLParam("login_hint", loginHint(r)))
 	} else if g.config.Prompt != "" {

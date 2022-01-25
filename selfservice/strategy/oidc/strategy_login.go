@@ -133,6 +133,7 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow) 
 		return nil, s.handleError(w, r, f, pid, nil, err)
 	}
 
+	s.d.Logger().WithField("login_hint", r.Form.Get("login_hint")).Debug("Login call validateFlow")
 	req, err := s.validateFlow(r.Context(), r, f.ID, r.Form.Get("login_hint"))
 	if err != nil {
 		return nil, s.handleError(w, r, f, pid, nil, err)

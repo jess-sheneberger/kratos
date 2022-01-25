@@ -190,6 +190,7 @@ func (s *Strategy) validateFlow(ctx context.Context, r *http.Request, rid uuid.U
 		if err := ar.Valid(); err != nil {
 			return ar, err
 		}
+		s.d.Logger().WithField("LoginHint", loginHint).Debug("validateFlow set LoginHint")
 		ar.LoginHint = loginHint
 		return ar, nil
 	}
