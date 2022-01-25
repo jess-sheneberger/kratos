@@ -95,6 +95,17 @@ func isForced(req interface{}) bool {
 	return ok && f.IsForced()
 }
 
+func loginHint(req interface{}) string {
+	lh, ok := req.(interface{
+		LoginHint() string
+	})
+	if ok {
+		return lh.LoginHint()
+	} else {
+		return ""
+	}
+}
+
 // Strategy implements selfservice.LoginStrategy, selfservice.RegistrationStrategy and selfservice.SettingsStrategy.
 // It supports login, registration and settings via OpenID Providers.
 type Strategy struct {
@@ -154,7 +165,7 @@ func (s *Strategy) ID() identity.CredentialsType {
 	return identity.CredentialsTypeOIDC
 }
 
-func (s *Strategy) validateFlow(ctx context.Context, r *http.Request, rid uuid.UUID) (flow.Flow, error) {
+func (s *Strategy) validateFlow(ctx context.Context, r *http.Request, rid uuid.UUID, loginHint string) (flow.Flow, error) {
 	if x.IsZeroUUID(rid) {
 		return nil, errors.WithStack(herodot.ErrBadRequest.WithReason("The session cookie contains invalid values and the flow could not be executed. Please try again."))
 	}
@@ -167,6 +178,7 @@ func (s *Strategy) validateFlow(ctx context.Context, r *http.Request, rid uuid.U
 		if err := ar.Valid(); err != nil {
 			return ar, err
 		}
+		ar.LoginHint = loginHint
 		return ar, nil
 	}
 
@@ -178,6 +190,7 @@ func (s *Strategy) validateFlow(ctx context.Context, r *http.Request, rid uuid.U
 		if err := ar.Valid(); err != nil {
 			return ar, err
 		}
+		ar.LoginHint = loginHint
 		return ar, nil
 	}
 
@@ -220,7 +233,7 @@ func (s *Strategy) validateCallback(w http.ResponseWriter, r *http.Request) (flo
 		return nil, &cntnr, errors.WithStack(herodot.ErrBadRequest.WithReasonf(`Unable to complete OpenID Connect flow because the query state parameter does not match the state parameter from the session cookie.`))
 	}
 
-	req, err := s.validateFlow(r.Context(), r, x.ParseUUID(cntnr.FlowID))
+	req, err := s.validateFlow(r.Context(), r, x.ParseUUID(cntnr.FlowID), "")
 	if err != nil {
 		return nil, &cntnr, err
 	}

@@ -67,6 +67,9 @@ type Flow struct {
 	// CSRFToken contains the anti-csrf token associated with this flow. Only set for browser flows.
 	CSRFToken string    `json:"-" db:"csrf_token"`
 	NID       uuid.UUID `json:"-"  faker:"-" db:"nid"`
+
+	// LoginHint stores the email address we were passed when OIDC was invoked
+	LoginHint string `json:"-" db:"-"`
 }
 
 func NewFlow(conf *config.Config, exp time.Duration, csrf string, r *http.Request, ft flow.Type) *Flow {
@@ -115,4 +118,8 @@ func (f *Flow) GetType() flow.Type {
 
 func (f *Flow) GetRequestURL() string {
 	return f.RequestURL
+}
+
+func (f *Flow) GetLoginHint() string {
+	return f.LoginHint
 }

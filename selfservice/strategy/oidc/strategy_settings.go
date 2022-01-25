@@ -318,7 +318,7 @@ func (s *Strategy) initLinkProvider(w http.ResponseWriter, r *http.Request, ctxU
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}
 
-	req, err := s.validateFlow(r.Context(), r, ctxUpdate.Flow.ID)
+	req, err := s.validateFlow(r.Context(), r, ctxUpdate.Flow.ID, "")
 	if err != nil {
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}

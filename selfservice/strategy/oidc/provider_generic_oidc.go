@@ -74,11 +74,14 @@ func (g *ProviderGenericOIDC) OAuth2(ctx context.Context) (*oauth2.Config, error
 
 func (g *ProviderGenericOIDC) AuthCodeURLOptions(r ider) []oauth2.AuthCodeOption {
 	var options []oauth2.AuthCodeOption
-
+	
 	if isForced(r) {
 		options = append(options, oauth2.SetAuthURLParam("prompt", "login"))
 	}
-	if g.config.Prompt != "" {
+
+	if loginHint(r) != "" {
+		options = append(options, oauth2.SetAuthURLParam("login_hint", loginHint(r)))
+	} else if g.config.Prompt != "" {
 		options = append(options, oauth2.SetAuthURLParam("prompt", g.config.Prompt))
 	}
 

@@ -153,3 +153,7 @@ func (f Flow) GetID() uuid.UUID {
 func (f Flow) GetNID() uuid.UUID {
 	return f.NID
 }
+
+func (f *Flow) GetLoginHint() string {
+	return ""
+}

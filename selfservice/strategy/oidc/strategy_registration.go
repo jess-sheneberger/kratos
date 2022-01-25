@@ -96,7 +96,7 @@ func (s *Strategy) Register(w http.ResponseWriter, r *http.Request, f *registrat
 		return s.handleError(w, r, f, pid, nil, err)
 	}
 
-	req, err := s.validateFlow(r.Context(), r, f.ID)
+	req, err := s.validateFlow(r.Context(), r, f.ID, r.Form.Get("login_hint"))
 	if err != nil {
 		return s.handleError(w, r, f, pid, nil, err)
 	}
