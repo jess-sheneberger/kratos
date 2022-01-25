@@ -139,6 +139,7 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow) 
 		return nil, s.handleError(w, r, f, pid, nil, err)
 	}
 
+	s.d.Logger().WithField("req", req).Debug("Login post validateFlow")
 	if s.alreadyAuthenticated(w, r, req) {
 		return
 	}

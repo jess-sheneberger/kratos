@@ -97,7 +97,7 @@ func isForced(req interface{}) bool {
 
 func loginHint(req interface{}) string {
 	lh, ok := req.(interface{
-		LoginHint() string
+		GetLoginHint() string
 	})
 	if ok {
 		return lh.LoginHint()
