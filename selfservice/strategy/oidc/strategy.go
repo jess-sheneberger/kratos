@@ -100,7 +100,7 @@ func loginHint(req interface{}) string {
 		GetLoginHint() string
 	})
 	if ok {
-		return lh.LoginHint()
+		return lh.GetLoginHint()
 	} else {
 		return ""
 	}
