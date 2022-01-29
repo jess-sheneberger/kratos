@@ -88,9 +88,6 @@ type issueTokenRequest struct {
 // swagger:response issueTokenResponse
 // nolint:deadcode,unused
 type issueTokenResponse struct {
-	// in: body
-	// required: true
-	Token string `json:"token"`
 }
 
 // swagger:route GET /sessions/issue admin issueToken
@@ -127,12 +124,12 @@ func (h *Handler) issueToken(w http.ResponseWriter, r *http.Request, _ httproute
 	}
 	s = s.Declassify()
 
-	if err := h.r.SessionPersister().CreateSession(ctx, s); err != nil {
+	if err := h.r.SessionManager().CreateAndIssueCookie(r.Context(), w, r, s); err != nil {
 		h.r.Writer().WriteErrorCode(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	h.r.Writer().Write(w, r, &issueTokenResponse{Token: s.Token})
+	h.r.Writer().Write(w, r, &issueTokenResponse{})
 }
 
 // nolint:deadcode,unused
