@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/pkg/errors"
