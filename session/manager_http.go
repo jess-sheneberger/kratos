@@ -69,6 +69,7 @@ func (s *ManagerHTTP) IssueCookie(ctx context.Context, w http.ResponseWriter, r 
 	}
 
 	old, err := s.FetchFromRequest(ctx, r)
+	log.Printf("DEBUGDEBUG: FetchFromRequest: old '%#v', err '%#v'\n", old, err)
 	if err != nil {
 		// No session was set prior -> regenerate anti-csrf token
 		_ = s.r.CSRFHandler().RegenerateToken(w, r)
