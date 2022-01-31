@@ -124,7 +124,7 @@ func (h *Handler) issueToken(w http.ResponseWriter, r *http.Request, _ httproute
 	}
 	s = s.Declassify()
 
-	if err := h.r.SessionManager().CreateAndIssueCookie(r.Context(), w, r, s); err != nil {
+	if err := h.r.SessionManager().AdminCreateAndIssueCookie(r.Context(), w, r, s); err != nil {
 		h.r.Writer().WriteErrorCode(w, r, http.StatusInternalServerError, err)
 		return
 	}

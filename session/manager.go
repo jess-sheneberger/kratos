@@ -14,6 +14,11 @@ var (
 
 // Manager handles identity sessions.
 type Manager interface {
+
+	// AdminCreateAndIssueCookie stores a session in the database and issues a cookie.
+	// For use by Admin API.  Skips unnecessary CSRF stuff. 
+	AdminCreateAndIssueCookie(context.Context, http.ResponseWriter, *http.Request, *Session) error
+
 	// CreateAndIssueCookie stores a session in the database and issues a cookie by calling IssueCookie.
 	//
 	// Also regenerates CSRF tokens due to assumed principal change.

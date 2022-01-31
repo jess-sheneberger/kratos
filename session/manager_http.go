@@ -40,6 +40,43 @@ func NewManagerHTTP(r managerHTTPDependencies) *ManagerHTTP {
 	}
 }
 
+func (s *ManagerHTTP) AdminCreateAndIssueCookie(ctx context.Context, w http.ResponseWriter, r *http.Request, ss *Session) error {
+	if err := s.r.SessionPersister().CreateSession(ctx, ss); err != nil {
+		return err
+	}
+
+	cookie, _ := s.r.CookieManager(r.Context()).Get(r, s.cookieName(ctx))
+
+	if s.r.Config(ctx).SessionPath() != "" {
+		cookie.Options.Path = s.r.Config(ctx).SessionPath()
+	}
+
+	if domain := s.r.Config(ctx).SessionDomain(); domain != "" {
+		cookie.Options.Domain = domain
+	}
+
+	if alias := s.r.Config(ctx).SelfPublicURL(r); s.r.Config(ctx).SelfPublicURL(nil).String() != alias.String() {
+		// If a domain alias is detected use that instead.
+		cookie.Options.Domain = alias.Hostname()
+		cookie.Options.Path = alias.Path
+	}
+
+	if s.r.Config(ctx).SessionSameSiteMode() != 0 {
+		cookie.Options.SameSite = s.r.Config(ctx).SessionSameSiteMode()
+	}
+
+	cookie.Options.MaxAge = 0
+	if s.r.Config(ctx).SessionPersistentCookie() {
+		cookie.Options.MaxAge = int(s.r.Config(ctx).SessionLifespan().Seconds())
+	}
+
+	cookie.Values["session_token"] = ss.Token
+	if err := cookie.Save(r, w); err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
 func (s *ManagerHTTP) CreateAndIssueCookie(ctx context.Context, w http.ResponseWriter, r *http.Request, ss *Session) error {
 	if err := s.r.SessionPersister().CreateSession(ctx, ss); err != nil {
 		return err
@@ -70,7 +107,6 @@ func (s *ManagerHTTP) IssueCookie(ctx context.Context, w http.ResponseWriter, r 
 	}
 
 	old, err := s.FetchFromRequest(ctx, r)
-	log.Printf("DEBUGDEBUG: FetchFromRequest: old '%#v', err '%#v'\n", old, err)
 	if err != nil {
 		// No session was set prior -> regenerate anti-csrf token
 		_ = s.r.CSRFHandler().RegenerateToken(w, r)
