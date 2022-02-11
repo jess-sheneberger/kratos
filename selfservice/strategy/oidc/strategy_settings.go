@@ -362,6 +362,17 @@ func (s *Strategy) linkProvider(w http.ResponseWriter, r *http.Request, ctxUpdat
 		}
 	}
 
+	if claims.EmailVerified {
+		i.VerifiableAddresses = append(i.VerifiableAddresses, identity.VerifiableAddress{
+			ID:         x.NewUUID(),
+			Value:      claims.Email,
+			Verified:   true,
+			Via:        "email",
+			Status:     identity.VerifiableAddressStatusCompleted,
+			IdentityID: i.GetID(),
+		})
+	}
+
 	i.Credentials[s.ID()] = *creds
 	if err := s.d.SettingsHookExecutor().PostSettingsHook(w, r, s.SettingsStrategyID(), ctxUpdate, i, settings.WithCallback(func(ctxUpdate *settings.UpdateContext) error {
 		return s.PopulateSettingsMethod(r, ctxUpdate.Session.Identity, ctxUpdate.Flow)
