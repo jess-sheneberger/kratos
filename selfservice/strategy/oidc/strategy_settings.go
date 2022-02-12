@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -378,6 +379,8 @@ func (s *Strategy) linkProvider(w http.ResponseWriter, r *http.Request, ctxUpdat
 		Status:     identity.VerifiableAddressStatusCompleted,
 		IdentityID: i.GetID(),
 	})
+
+	log.Printf("DEBUGDEBUG: settings flow added verifiable email '%s' to identityID '%s'\n", claims.Email, i.GetID())
 
 	i.Credentials[s.ID()] = *creds
 	if err := s.d.SettingsHookExecutor().PostSettingsHook(w, r, s.SettingsStrategyID(), ctxUpdate, i, settings.WithCallback(func(ctxUpdate *settings.UpdateContext) error {
