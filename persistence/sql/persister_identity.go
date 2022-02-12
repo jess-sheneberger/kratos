@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -143,6 +144,8 @@ func (p *Persister) createIdentityCredentials(ctx context.Context, i *identity.I
 				return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to create identity credentials with missing or empty identifier."))
 			}
 
+			log.Printf("DEBUGDEBUG: createIdentityCredentials: %v\n", ids)
+
 			if err := c.Create(&identity.CredentialIdentifier{
 				Identifier:            ids,
 				IdentityCredentialsID: cred.ID,
@@ -162,6 +165,7 @@ func (p *Persister) createVerifiableAddresses(ctx context.Context, i *identity.I
 	for k := range i.VerifiableAddresses {
 		i.VerifiableAddresses[k].IdentityID = i.ID
 		i.VerifiableAddresses[k].NID = corp.ContextualizeNID(ctx, p.nid)
+		log.Printf("DEBUGDEBUG: createVerifiableAddresses: %d: %#v\n", k, i.VerifiableAddresses[k])
 		if err := p.GetConnection(ctx).Create(&i.VerifiableAddresses[k]); err != nil {
 			return err
 		}
