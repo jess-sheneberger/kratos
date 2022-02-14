@@ -381,6 +381,7 @@ func (s *Strategy) linkProvider(w http.ResponseWriter, r *http.Request, ctxUpdat
 	})
 
 	log.Printf("DEBUGDEBUG: settings flow added verifiable email '%s' to identityID '%s'\n", claims.Email, i.GetID())
+	log.Printf("DEBUGDEBUG: i.VerifiableAddresses '%#v'\n", i.VerifiableAddresses)
 
 	i.Credentials[s.ID()] = *creds
 	if err := s.d.SettingsHookExecutor().PostSettingsHook(w, r, s.SettingsStrategyID(), ctxUpdate, i, settings.WithCallback(func(ctxUpdate *settings.UpdateContext) error {
