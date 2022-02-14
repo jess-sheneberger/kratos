@@ -2,6 +2,7 @@ package identity
 
 import (
 	"context"
+	"log"
 
 	"github.com/tidwall/sjson"
 
@@ -28,6 +29,7 @@ func NewValidator(d validatorDependencies) *Validator {
 }
 
 func (v *Validator) ValidateWithRunner(ctx context.Context, i *Identity, runners ...schema.Extension) error {
+	
 	runner, err := schema.NewExtensionRunner(schema.ExtensionRunnerIdentityMetaSchema, runners...)
 	if err != nil {
 		return err
@@ -43,6 +45,7 @@ func (v *Validator) ValidateWithRunner(ctx context.Context, i *Identity, runners
 		return err
 	}
 
+	log.Printf("DEBUGDEBUG: Validator.ValidateWithRunner() about to call Validate() with traits %v\n", traits)
 	return v.v.Validate(s.URL.String(), traits, schema.WithExtensionRunner(runner))
 }
 
