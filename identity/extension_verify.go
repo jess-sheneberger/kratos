@@ -2,6 +2,7 @@ package identity
 
 import (
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -25,6 +26,8 @@ func (r *SchemaExtensionVerification) Run(ctx jsonschema.ValidationContext, s sc
 	r.l.Lock()
 	defer r.l.Unlock()
 
+	log.Printf("DEBUGDEBUG: SchemaExtensionVerification.Run() 1: i.VerifiableAddresses: %v\n", r.i.VerifiableAddresses)
+
 	switch s.Verification.Via {
 	case "email":
 		if !jsonschema.Formats["email"](value) {
@@ -32,16 +35,22 @@ func (r *SchemaExtensionVerification) Run(ctx jsonschema.ValidationContext, s sc
 		}
 
 		address := NewVerifiableEmailAddress(fmt.Sprintf("%s", value), r.i.ID)
+		log.Printf("DEBUGDEBUG: SchemaExtensionVerification.Run() 2: address: %v\n", address)
+		log.Printf("DEBUGDEBUG: SchemaExtensionVerification.Run() 2: r.i.VerifiableAddresses: %v\n", r.i.VerifiableAddresses)
 
 		if has := r.has(r.i.VerifiableAddresses, address); has != nil {
 			if r.has(r.v, address) == nil {
+				log.Printf("DEBUGDEBUG: SchemaExtensionVerification.Run() 3: append has: %v\n", has)
 				r.v = append(r.v, *has)
+				log.Printf("DEBUGDEBUG: SchemaExtensionVerification.Run() 4: append r.v: %v\n", r.v)
 			}
 			return nil
 		}
 
 		if has := r.has(r.v, address); has == nil {
+			log.Printf("DEBUGDEBUG: SchemaExtensionVerification.Run() 5: append has: %v\n", has)
 			r.v = append(r.v, *address)
+			log.Printf("DEBUGDEBUG: SchemaExtensionVerification.Run() 6: append has: %v\n", r.v)
 		}
 
 		return nil
@@ -62,6 +71,8 @@ func (r *SchemaExtensionVerification) has(haystack []VerifiableAddress, needle *
 }
 
 func (r *SchemaExtensionVerification) Finish() error {
+	log.Printf("DEBUGDEBUG: SchemaExtensionVerification.Finish(): r.i.VerifiableAddresses: %v\n", r.i.VerifiableAddresses)
+	log.Printf("DEBUGDEBUG: SchemaExtensionVerification.Finish(): r.v: %v\n", r.v)
 	r.i.VerifiableAddresses = r.v
 	return nil
 }
