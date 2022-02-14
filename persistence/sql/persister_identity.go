@@ -310,10 +310,12 @@ func (p *Persister) UpdateIdentity(ctx context.Context, i *identity.Identity) er
 			}
 		}
 
+		log.Printf("DEBUGDEBUG: UpdateIdentity() before update(): %v\n", i.ID)
 		if err := p.update(WithTransaction(ctx, tx), i); err != nil {
 			return err
 		}
 
+		log.Printf("DEBUGDEBUG: UpdateIdentity() before createVerifiableAddresses(): %v\n", i.ID)
 		if err := p.createVerifiableAddresses(ctx, i); err != nil {
 			return err
 		}
@@ -321,7 +323,8 @@ func (p *Persister) UpdateIdentity(ctx context.Context, i *identity.Identity) er
 		if err := p.createRecoveryAddresses(ctx, i); err != nil {
 			return err
 		}
-
+		
+		log.Printf("DEBUGDEBUG: UpdateIdentity() before createIdentityCredentials(): %v\n", i.ID)
 		return p.createIdentityCredentials(ctx, i)
 	}))
 }
