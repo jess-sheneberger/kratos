@@ -2,6 +2,7 @@ package identity
 
 import (
 	"context"
+	"log"
 	"reflect"
 
 	"github.com/gofrs/uuid"
@@ -90,9 +91,11 @@ func (m *Manager) requiresPrivilegedAccess(_ context.Context, original, updated 
 
 func (m *Manager) Update(ctx context.Context, updated *Identity, opts ...ManagerOption) error {
 	o := newManagerOptions(opts)
+	log.Printf("DEBUGDEBUG: IdentityManager.Update() pre-validate updated.VerifiableAddresses: %v\n", updated.VerifiableAddresses)
 	if err := m.validate(ctx, updated, o); err != nil {
 		return err
 	}
+	log.Printf("DEBUGDEBUG: IdentityManager.Update() post-validate updated.VerifiableAddresses: %v\n", updated.VerifiableAddresses)
 	
 	original, err := m.r.IdentityPool().(PrivilegedPool).GetIdentityConfidential(ctx, updated.ID)
 	if err != nil {

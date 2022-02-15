@@ -109,7 +109,6 @@ func (s *Sender) SendVerificationLink(ctx context.Context, f *verification.Flow,
 	if err := s.SendVerificationTokenTo(ctx, f, address, token); err != nil {
 		return err
 	}
-	s.r.Logger().Debugf("DEBUGDEBUG: Setting token on flow to '%s'\n", token.Token)
 	f.Token = token.Token
 	return nil
 }

@@ -3,7 +3,6 @@ package settings
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -102,8 +101,6 @@ func (e *HookExecutor) PostSettingsHook(w http.ResponseWriter, r *http.Request, 
 		WithField("flow_method", settingsType).
 		Debug("Running PostSettingsPrePersistHooks.")
 	
-	log.Printf("DEBUGDEBUG: PostSettingsHook start: i.VerifiableAddresses '%#v'\n", i.VerifiableAddresses)
-
 	config := new(postSettingsHookOptions)
 	for _, f := range opts {
 		f(config)
@@ -136,7 +133,6 @@ func (e *HookExecutor) PostSettingsHook(w http.ResponseWriter, r *http.Request, 
 		options = append(options, identity.ManagerAllowWriteProtectedTraits)
 	}
 
-	log.Printf("DEBUGDEBUG: PostSettingsHook IdentityManager().Update(): i.VerifiableAddresses '%#v'\n", i.VerifiableAddresses)
 	if err := e.d.IdentityManager().Update(r.Context(), i, options...); err != nil {
 		if errors.Is(err, identity.ErrProtectedFieldModified) {
 			e.d.Logger().WithError(err).Debug("Modifying protected field requires re-authentication.")
@@ -152,7 +148,6 @@ func (e *HookExecutor) PostSettingsHook(w http.ResponseWriter, r *http.Request, 
 		WithField("identity_id", i.ID).
 		Debug("An identity's settings have been updated.")
 
-	log.Printf("DEBUGDEBUG: PostSettingsHook ctxUpdate.UpdateIdentity(i): i.VerifiableAddresses '%#v'\n", i.VerifiableAddresses)
 	ctxUpdate.UpdateIdentity(i)
 	ctxUpdate.Flow.State = StateSuccess
 	if config.cb != nil {

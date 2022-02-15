@@ -3,7 +3,6 @@ package schema
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -64,7 +63,6 @@ func (v *Validator) Validate(
 		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to parse validate JSON object against JSON schema.").WithDebugf("%s", err))
 	}
 
-	log.Printf("DEBUGDEBUG: schema.Validator.Validate(): document: %s\n", document)
 	if err := schema.Validate(bytes.NewBuffer(document)); err != nil {
 		return errors.WithStack(err)
 	}

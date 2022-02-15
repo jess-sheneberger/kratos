@@ -4,9 +4,10 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/tidwall/sjson"
 
 	"github.com/ory/kratos/continuity"
 	"github.com/ory/kratos/selfservice/strategy"
@@ -371,6 +372,10 @@ func (s *Strategy) linkProvider(w http.ResponseWriter, r *http.Request, ctxUpdat
 		}
 	}
 
+	i.Traits, err = sjson.SetBytes(i.Traits, "email", claims.Email)
+	if err != nil {
+		return s.handleSettingsError(w, r, ctxUpdate, p, err)
+	}
 	i.VerifiableAddresses = append(i.VerifiableAddresses, identity.VerifiableAddress{
 		ID:         x.NewUUID(),
 		Value:      claims.Email,
@@ -379,9 +384,6 @@ func (s *Strategy) linkProvider(w http.ResponseWriter, r *http.Request, ctxUpdat
 		Status:     identity.VerifiableAddressStatusCompleted,
 		IdentityID: i.GetID(),
 	})
-
-	log.Printf("DEBUGDEBUG: settings flow added verifiable email '%s' to identityID '%s'\n", claims.Email, i.GetID())
-	log.Printf("DEBUGDEBUG: i.VerifiableAddresses '%#v'\n", i.VerifiableAddresses)
 
 	i.Credentials[s.ID()] = *creds
 	if err := s.d.SettingsHookExecutor().PostSettingsHook(w, r, s.SettingsStrategyID(), ctxUpdate, i, settings.WithCallback(func(ctxUpdate *settings.UpdateContext) error {

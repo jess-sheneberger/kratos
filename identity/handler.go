@@ -2,7 +2,6 @@ package identity
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
@@ -155,8 +154,6 @@ func (h *Handler) knownCredentials(w http.ResponseWriter, r *http.Request, _ htt
 			}
 		}
 	}
-
-	log.Printf("DEBUGDEBUG: knownCredentials identity: %v\n", identity)
 
 	var oidcCreds *Credentials
 	var passwordCreds *Credentials

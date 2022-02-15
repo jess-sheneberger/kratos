@@ -2,7 +2,6 @@ package identity
 
 import (
 	"context"
-	"log"
 
 	"github.com/tidwall/sjson"
 
@@ -45,7 +44,6 @@ func (v *Validator) ValidateWithRunner(ctx context.Context, i *Identity, runners
 		return err
 	}
 
-	log.Printf("DEBUGDEBUG: Validator.ValidateWithRunner() about to call Validate() with traits %v\n", traits)
 	return v.v.Validate(s.URL.String(), traits, schema.WithExtensionRunner(runner))
 }
 

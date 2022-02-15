@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -144,8 +143,6 @@ func (p *Persister) createIdentityCredentials(ctx context.Context, i *identity.I
 				return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to create identity credentials with missing or empty identifier."))
 			}
 
-			log.Printf("DEBUGDEBUG: createIdentityCredentials: %v\n", ids)
-
 			if err := c.Create(&identity.CredentialIdentifier{
 				Identifier:            ids,
 				IdentityCredentialsID: cred.ID,
@@ -162,12 +159,10 @@ func (p *Persister) createIdentityCredentials(ctx context.Context, i *identity.I
 }
 
 func (p *Persister) createVerifiableAddresses(ctx context.Context, i *identity.Identity) error {
-	log.Printf("DEBUGDEBUG: createVerifiableAddresses: ID %s: VerifiableAddresses: %#v\n", i.ID, i.VerifiableAddresses)
 
 	for k := range i.VerifiableAddresses {
 		i.VerifiableAddresses[k].IdentityID = i.ID
 		i.VerifiableAddresses[k].NID = corp.ContextualizeNID(ctx, p.nid)
-		log.Printf("DEBUGDEBUG: createVerifiableAddresses: %d: %#v\n", k, i.VerifiableAddresses[k])
 		if err := p.GetConnection(ctx).Create(&i.VerifiableAddresses[k]); err != nil {
 			return err
 		}
@@ -312,12 +307,10 @@ func (p *Persister) UpdateIdentity(ctx context.Context, i *identity.Identity) er
 			}
 		}
 
-		log.Printf("DEBUGDEBUG: UpdateIdentity() before update() id: '%s', i.VerifiableAddresses: %v\n", i.ID, i.VerifiableAddresses)
 		if err := p.update(WithTransaction(ctx, tx), i); err != nil {
 			return err
 		}
 
-		log.Printf("DEBUGDEBUG: UpdateIdentity() before createVerifiableAddresses(): id: '%s', i.VerifiableAddresses: %v\n", i.ID, i.VerifiableAddresses)
 		if err := p.createVerifiableAddresses(ctx, i); err != nil {
 			return err
 		}
@@ -326,7 +319,6 @@ func (p *Persister) UpdateIdentity(ctx context.Context, i *identity.Identity) er
 			return err
 		}
 		
-		log.Printf("DEBUGDEBUG: UpdateIdentity() before createIdentityCredentials(): id: '%s', i.VerifiableAddresses: %v\n", i.ID, i.VerifiableAddresses)
 		return p.createIdentityCredentials(ctx, i)
 	}))
 }
