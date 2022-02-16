@@ -139,6 +139,13 @@ func (e *HookExecutor) PostSettingsHook(w http.ResponseWriter, r *http.Request, 
 			return errors.WithStack(NewFlowNeedsReAuth())
 		}
 		if errors.Is(err, sqlcon.ErrUniqueViolation) {
+			e.d.Logger().
+				WithRequest(r).
+				WithField("identity.traits", fmt.Sprintf("%#v", i.Traits)).
+				WithField("identity.credentials", fmt.Sprintf("%#v", i.Credentials)).
+				WithField("flow", fmt.Sprintf("%#v", ctxUpdate.Flow)).
+				Debug("DEBUGDEBUG: Settings flow about to return NewDuplicateCredentialsError() ")
+
 			return schema.NewDuplicateCredentialsError()
 		}
 		return err

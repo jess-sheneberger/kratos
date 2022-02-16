@@ -119,6 +119,13 @@ func (e *HookExecutor) PostRegistrationHook(w http.ResponseWriter, r *http.Reque
 		// would imply that the identity has to exist already.
 	} else if err := e.d.IdentityManager().Create(r.Context(), i); err != nil {
 		if errors.Is(err, sqlcon.ErrUniqueViolation) {
+			e.d.Logger().
+				WithRequest(r).
+				WithField("identity.traits", fmt.Sprintf("%#v", i.Traits)).
+				WithField("identity.credentials", fmt.Sprintf("%#v", i.Credentials)).
+				WithField("flow", fmt.Sprintf("%#v", a)).
+				Debug("DEBUGDEBUG: Registration flow about to return NewDuplicateCredentialsError() ")
+
 			return schema.NewDuplicateCredentialsError()
 		}
 		return err
