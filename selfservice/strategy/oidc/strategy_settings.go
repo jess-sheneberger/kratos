@@ -3,6 +3,7 @@ package oidc
 import (
 	"context"
 	_ "embed"
+	"log"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -396,9 +397,16 @@ func (s *Strategy) linkProvider(w http.ResponseWriter, r *http.Request, ctxUpdat
 }
 
 func (s *Strategy) unlinkProvider(w http.ResponseWriter, r *http.Request, ctxUpdate *settings.UpdateContext, p *submitSelfServiceSettingsFlowWithOidcMethodBody) error {
+	log.Printf("DEBUGDEBUG s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge(): %s\n", s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge())
+	log.Printf("DEBUGDEBUG ctxUpdate.Session.AuthenticatedAt: %s\n", ctxUpdate.Session.AuthenticatedAt.String())
+	log.Printf("DEBUGDEBUG time.Now(): %s\n", time.Now().String())
+	log.Printf("DEBUGDEBUG entirety: %s\n", ctxUpdate.Session.AuthenticatedAt.Add(s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge()).Before(time.Now()))
+
 	if ctxUpdate.Session.AuthenticatedAt.Add(s.d.Config(r.Context()).SelfServiceFlowSettingsPrivilegedSessionMaxAge()).Before(time.Now()) {
 		return s.handleSettingsError(w, r, ctxUpdate, p, errors.WithStack(settings.NewFlowNeedsReAuth()))
 	}
+
+	log.Printf("DEBUGDEBUG: passed initial check")
 
 	providers, err := s.Config(r.Context())
 	if err != nil {
