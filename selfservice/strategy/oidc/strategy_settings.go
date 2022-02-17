@@ -67,12 +67,6 @@ func (s *Strategy) linkedProviders(ctx context.Context, r *http.Request, conf *C
 		}
 	}
 
-	if count < 2 {
-		// This means that we're able to remove a connection because it is the last configured credential. If it is
-		// removed, the identity is no longer able to sign in.
-		return nil, nil
-	}
-
 	var result []Provider
 	for _, p := range available.Providers {
 		prov, err := conf.Provider(p.Provider, s.d.Config(ctx).SelfPublicURL(r))
@@ -412,6 +406,7 @@ func (s *Strategy) unlinkProvider(w http.ResponseWriter, r *http.Request, ctxUpd
 	}
 
 	availableProviders, err := s.linkedProviders(r.Context(), r, providers, i)
+	log.Printf("DEBUGDEBUG: linkedProviders: %#v\n", availableProviders)
 	if err != nil {
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}
