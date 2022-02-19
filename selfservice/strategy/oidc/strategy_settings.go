@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"log"
+	"runtime/debug"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -188,7 +189,32 @@ func (p *submitSelfServiceSettingsFlowWithOidcMethodBody) SetFlowID(rid uuid.UUI
 	p.FlowID = rid.String()
 }
 
+type DebugResponseWriter struct {
+	Inner http.ResponseWriter
+}
+
+func (d *DebugResponseWriter) Header() http.Header {
+	return d.Inner.Header()
+}
+
+func (d *DebugResponseWriter) Write(b []byte) (int, error) {
+	return d.Inner.Write(b)
+}
+
+func (d *DebugResponseWriter) WriteHeader(statusCode int) {
+	log.Printf("DEBUGDEBUG WriteHeader() called with statusCode = %d, stacktrace follows\n", statusCode)
+	debug.PrintStack()
+	d.Inner.WriteHeader(statusCode)
+}
+
+func WrapResponseWriter(w http.ResponseWriter) http.ResponseWriter {
+	return &DebugResponseWriter{Inner: w}
+}
+
 func (s *Strategy) Settings(w http.ResponseWriter, r *http.Request, f *settings.Flow, ss *session.Session) (*settings.UpdateContext, error) {
+	
+	w = WrapResponseWriter(w)
+
 	var method struct {
 		Link   string `json:"link" form:"link"`
 		Unlink string `json:"unlink" form:"unlink"`
@@ -406,7 +432,6 @@ func (s *Strategy) unlinkProvider(w http.ResponseWriter, r *http.Request, ctxUpd
 	}
 
 	availableProviders, err := s.linkedProviders(r.Context(), r, providers, i)
-	log.Printf("DEBUGDEBUG: linkedProviders: %#v\n", availableProviders)
 	if err != nil {
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}
@@ -414,7 +439,6 @@ func (s *Strategy) unlinkProvider(w http.ResponseWriter, r *http.Request, ctxUpd
 	var cc CredentialsConfig
 	creds, err := i.ParseCredentials(s.ID(), &cc)
 	if err != nil {
-		log.Printf("DEBUGDEBUG: ParseCredentials error: %s\n", err)
 		return s.handleSettingsError(w, r, ctxUpdate, p, errors.WithStack(UnknownConnectionValidationError))
 	}
 
@@ -435,7 +459,6 @@ func (s *Strategy) unlinkProvider(w http.ResponseWriter, r *http.Request, ctxUpd
 	}
 
 	if !found {
-		log.Printf("DEBUGDEBUG: !found error. creds: %#v\n", creds)
 		return s.handleSettingsError(w, r, ctxUpdate, p, errors.WithStack(UnknownConnectionValidationError))
 	}
 
