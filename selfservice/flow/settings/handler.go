@@ -425,7 +425,7 @@ func WrapResponseWriter(w http.ResponseWriter) http.ResponseWriter {
 }
 
 func (h *Handler) submitSettingsFlow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w = WrapResponseWriter(w)
+	// w = WrapResponseWriter(w)
 
 	rid, err := GetFlowID(r)
 	if err != nil {

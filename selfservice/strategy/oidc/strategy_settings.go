@@ -449,7 +449,7 @@ func (s *Strategy) unlinkProvider(w http.ResponseWriter, r *http.Request, ctxUpd
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}
 
-	return nil
+	return errors.WithStack(flow.ErrCompletedByStrategy)
 }
 
 func (s *Strategy) handleSettingsError(w http.ResponseWriter, r *http.Request, ctxUpdate *settings.UpdateContext, p *submitSelfServiceSettingsFlowWithOidcMethodBody, err error) error {
