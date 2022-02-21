@@ -3,8 +3,6 @@ package settings
 import (
 	"net/http"
 	"time"
-	"log"
-	"runtime/debug"
 
 	"github.com/ory/kratos/ui/node"
 	"github.com/ory/x/sqlcon"
@@ -402,31 +400,7 @@ type submitSelfServiceSettingsFlowBody struct{}
 //       401: jsonError
 //       403: jsonError
 //       500: jsonError
-type DebugResponseWriter struct {
-	Inner http.ResponseWriter
-}
-
-func (d *DebugResponseWriter) Header() http.Header {
-	return d.Inner.Header()
-}
-
-func (d *DebugResponseWriter) Write(b []byte) (int, error) {
-	return d.Inner.Write(b)
-}
-
-func (d *DebugResponseWriter) WriteHeader(statusCode int) {
-	log.Printf("DEBUGDEBUG WriteHeader() called with statusCode = %d, stacktrace follows\n", statusCode)
-	debug.PrintStack()
-	d.Inner.WriteHeader(statusCode)
-}
-
-func WrapResponseWriter(w http.ResponseWriter) http.ResponseWriter {
-	return &DebugResponseWriter{Inner: w}
-}
-
 func (h *Handler) submitSettingsFlow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	// w = WrapResponseWriter(w)
-
 	rid, err := GetFlowID(r)
 	if err != nil {
 		h.d.SettingsFlowErrorHandler().WriteFlowError(w, r, node.DefaultGroup, nil, nil, err)
