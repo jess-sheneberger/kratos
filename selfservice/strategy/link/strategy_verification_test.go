@@ -29,6 +29,7 @@ import (
 	"github.com/ory/x/assertx"
 	"github.com/ory/x/ioutilx"
 	"github.com/ory/x/sqlxx"
+	"github.com/ory/x/urlx"
 )
 
 func TestVerification(t *testing.T) {
@@ -283,13 +284,10 @@ func TestVerification(t *testing.T) {
 
 		assert.EqualValues(t, http.StatusOK, res.StatusCode)
 		assert.Contains(t, res.Request.URL.String(), conf.SelfServiceFlowVerificationUI().String())
-		assert.NotContains(t, res.Request.URL.String(), gjson.Get(body, "id").String())
+		assert.Contains(t, res.Request.URL.String(), gjson.Get(body, "id").String())
 
-		sr, _, err := testhelpers.NewSDKCustomClient(public, c).V0alpha1Api.GetSelfServiceVerificationFlow(context.Background()).Id(res.Request.URL.Query().Get("flow")).Execute()
-		require.NoError(t, err)
-
-		require.Len(t, sr.Ui.Messages, 1)
-		assert.Contains(t, sr.Ui.Messages[0].Text, "The verification flow expired")
+		_, _, err = testhelpers.NewSDKCustomClient(public, c).V0alpha1Api.GetSelfServiceVerificationFlow(context.Background()).Id(res.Request.URL.Query().Get("flow")).Execute()
+		require.Error(t, err, "410 Gone")
 	})
 
 	t.Run("description=should verify an email address", func(t *testing.T) {
@@ -303,17 +301,28 @@ func TestVerification(t *testing.T) {
 
 			verificationLink := testhelpers.CourierExpectLinkInMessage(t, message, 1)
 
-			assert.Contains(t, verificationLink, public.URL+verification.RouteSubmitFlow)
+			// we changed the email links to point at the UI
+			assert.Contains(t, verificationLink, conf.SelfServiceFlowVerificationUI().String())
 			assert.Contains(t, verificationLink, "token=")
 
 			cl := testhelpers.NewClientWithCookies(t)
-			res, err := cl.Get(verificationLink)
+			vl, err := url.Parse(verificationLink)
+			assert.NoError(t, err)
+			
+			// this is where the UI exchanges the verificiation token for a Kratos cookie
+			bl, err := url.Parse(public.URL+verification.RouteSubmitFlow)
+			assert.NoError(t, err)
+
+			rvl := urlx.CopyWithQuery(bl, vl.Query())			
+			
+			res, err := cl.Get(rvl.String())
 			require.NoError(t, err)
 			defer res.Body.Close()
 
 			assert.Equal(t, http.StatusOK, res.StatusCode)
-			assert.Contains(t, res.Request.URL.String(), conf.SelfServiceFlowVerificationUI().String())
 			body := string(ioutilx.MustReadAll(res.Body))
+			
+			
 			assert.EqualValues(t, "passed_challenge", gjson.Get(body, "state").String())
 			assert.EqualValues(t, text.NewInfoSelfServiceVerificationSuccessful().Text, gjson.Get(body, "ui.messages.0.text").String())
 
@@ -354,7 +363,7 @@ func TestVerification(t *testing.T) {
 		identityToVerify.VerifiableAddresses = append(identityToVerify.VerifiableAddresses, *email)
 		require.NoError(t, reg.IdentityManager().Update(context.Background(), identityToVerify, identity.ManagerAllowWriteProtectedTraits))
 
-		token := link.NewSelfServiceVerificationToken(&identityToVerify.VerifiableAddresses[0], f, time.Hour)
+		token := link.NewSelfServiceVerificationToken(true, &identityToVerify.VerifiableAddresses[0], f, time.Hour)
 		require.NoError(t, reg.VerificationTokenPersister().CreateVerificationToken(context.Background(), token))
 		return f, token
 	}

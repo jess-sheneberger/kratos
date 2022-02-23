@@ -91,6 +91,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/oauth2 v0.0.0-20210323180902-22b0adad7558
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	golang.org/x/sys v0.0.0-20220222172238-00053529121e // indirect
 	golang.org/x/tools v0.1.0
 	gopkg.in/gorp.v1 v1.7.2 // indirect
 )
