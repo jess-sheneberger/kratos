@@ -3,6 +3,7 @@ package oidc
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -95,7 +96,7 @@ func (s *Strategy) Register(w http.ResponseWriter, r *http.Request, f *registrat
 		return s.handleError(w, r, f, pid, nil, err)
 	}
 
-	req, err := s.validateFlow(r.Context(), r, f.ID)
+	req, err := s.validateFlow(r.Context(), r, f.ID, r.Form.Get("login_hint"))
 	if err != nil {
 		return s.handleError(w, r, f, pid, nil, err)
 	}
@@ -176,6 +177,16 @@ func (s *Strategy) processRegistration(w http.ResponseWriter, r *http.Request, a
 	} else {
 		i.Traits = []byte(traits.Raw)
 	}
+
+	i.VerifiableAddresses = append(i.VerifiableAddresses, identity.VerifiableAddress{
+		ID:         x.NewUUID(),
+		Value:      claims.Email,
+		Verified:   true,
+		Via:        "email",
+		Status:     identity.VerifiableAddressStatusCompleted,
+		IdentityID: i.GetID(),
+	})
+	log.Printf("DEBUG: verifiable addresses: %v", i.VerifiableAddresses)
 
 	s.d.Logger().
 		WithRequest(r).

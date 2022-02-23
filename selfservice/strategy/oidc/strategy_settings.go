@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidwall/sjson"
+
 	"github.com/ory/kratos/continuity"
 	"github.com/ory/kratos/selfservice/strategy"
 	"github.com/ory/x/decoderx"
@@ -62,12 +64,6 @@ func (s *Strategy) linkedProviders(ctx context.Context, r *http.Request, conf *C
 		if count > 1 {
 			break
 		}
-	}
-
-	if count < 2 {
-		// This means that we're able to remove a connection because it is the last configured credential. If it is
-		// removed, the identity is no longer able to sign in.
-		return nil, nil
 	}
 
 	var result []Provider
@@ -318,7 +314,7 @@ func (s *Strategy) initLinkProvider(w http.ResponseWriter, r *http.Request, ctxU
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}
 
-	req, err := s.validateFlow(r.Context(), r, ctxUpdate.Flow.ID)
+	req, err := s.validateFlow(r.Context(), r, ctxUpdate.Flow.ID, "")
 	if err != nil {
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}
@@ -369,6 +365,19 @@ func (s *Strategy) linkProvider(w http.ResponseWriter, r *http.Request, ctxUpdat
 			return s.handleSettingsError(w, r, ctxUpdate, p, err)
 		}
 	}
+
+	i.Traits, err = sjson.SetBytes(i.Traits, "email", claims.Email)
+	if err != nil {
+		return s.handleSettingsError(w, r, ctxUpdate, p, err)
+	}
+	i.VerifiableAddresses = append(i.VerifiableAddresses, identity.VerifiableAddress{
+		ID:         x.NewUUID(),
+		Value:      claims.Email,
+		Verified:   true,
+		Via:        "email",
+		Status:     identity.VerifiableAddressStatusCompleted,
+		IdentityID: i.GetID(),
+	})
 
 	i.Credentials[s.ID()] = *creds
 	if err := s.d.SettingsHookExecutor().PostSettingsHook(w, r, s.SettingsStrategyID(), ctxUpdate, i, settings.WithCallback(func(ctxUpdate *settings.UpdateContext) error {
@@ -440,7 +449,7 @@ func (s *Strategy) unlinkProvider(w http.ResponseWriter, r *http.Request, ctxUpd
 		return s.handleSettingsError(w, r, ctxUpdate, p, err)
 	}
 
-	return nil
+	return errors.WithStack(flow.ErrCompletedByStrategy)
 }
 
 func (s *Strategy) handleSettingsError(w http.ResponseWriter, r *http.Request, ctxUpdate *settings.UpdateContext, p *submitSelfServiceSettingsFlowWithOidcMethodBody, err error) error {

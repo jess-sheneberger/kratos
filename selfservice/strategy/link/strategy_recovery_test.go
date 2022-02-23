@@ -340,19 +340,31 @@ func TestRecovery(t *testing.T) {
 			assertx.EqualAsJSON(t, text.NewRecoveryEmailSent(), json.RawMessage(gjson.Get(actual, "ui.messages.0").Raw))
 
 			message := testhelpers.CourierExpectMessage(t, reg, recoveryEmail, "Recover access to your account")
-			assert.Contains(t, message.Body, "please recover access to your account by clicking the following link")
+			assert.Contains(t, message.Body, "Please recover access to your account by clicking the following link")
 
 			recoveryLink := testhelpers.CourierExpectLinkInMessage(t, message, 1)
 
-			assert.Contains(t, recoveryLink, public.URL+recovery.RouteSubmitFlow)
+			// we changed the recovery emails to point at the recovery UI
+			assert.Contains(t, recoveryLink, conf.SelfServiceFlowRecoveryUI().String())
 			assert.Contains(t, recoveryLink, "token=")
 
 			cl := testhelpers.NewClientWithCookies(t)
-			res, err := cl.Get(recoveryLink)
+			
+			rl, err := url.Parse(recoveryLink)
+			require.NoError(t, err)
+
+			// this is where the UI requests the cookie
+			bl, err := url.Parse(public.URL+recovery.RouteSubmitFlow)
+			require.NoError(t, err)
+
+			// use the query from the email to get the cookie
+			rrl := urlx.CopyWithQuery(bl, rl.Query())
+			t.Logf("DEBUGDEBUG: rrl: %s\n", rrl.String())
+			
+			res, err := cl.Get(rrl.String())
 			require.NoError(t, err)
 
 			assert.Equal(t, http.StatusOK, res.StatusCode)
-			assert.Contains(t, res.Request.URL.String(), conf.SelfServiceFlowSettingsUI().String())
 
 			body := ioutilx.MustReadAll(res.Body)
 			assert.Equal(t, text.NewRecoverySuccessful(time.Now().Add(time.Hour)).Text,
@@ -421,7 +433,7 @@ func TestRecovery(t *testing.T) {
 		})
 
 		message := testhelpers.CourierExpectMessage(t, reg, recoveryEmail, "Recover access to your account")
-		assert.Contains(t, message.Body, "please recover access to your account by clicking the following link")
+		assert.Contains(t, message.Body, "Please recover access to your account by clicking the following link")
 
 		recoveryLink := testhelpers.CourierExpectLinkInMessage(t, message, 1)
 
@@ -432,13 +444,10 @@ func TestRecovery(t *testing.T) {
 
 		assert.EqualValues(t, http.StatusOK, res.StatusCode)
 		assert.Contains(t, res.Request.URL.String(), conf.SelfServiceFlowRecoveryUI().String())
-		assert.NotContains(t, res.Request.URL.String(), gjson.Get(body, "id").String())
+		assert.Contains(t, res.Request.URL.String(), gjson.Get(body, "id").String())
 
-		rs, _, err := testhelpers.NewSDKCustomClient(public, c).V0alpha1Api.GetSelfServiceRecoveryFlow(context.Background()).Id(res.Request.URL.Query().Get("flow")).Execute()
-		require.NoError(t, err)
-
-		require.Len(t, rs.Ui.Messages, 1)
-		assert.Contains(t, rs.Ui.Messages[0].Text, "The recovery flow expired")
+		_, _, err = testhelpers.NewSDKCustomClient(public, c).V0alpha1Api.GetSelfServiceRecoveryFlow(context.Background()).Id(res.Request.URL.Query().Get("flow")).Execute()
+		require.Error(t, err, "410 Gone")
 	})
 }
 

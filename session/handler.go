@@ -2,6 +2,7 @@ package session
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/pkg/errors"
@@ -10,16 +11,21 @@ import (
 
 	"github.com/ory/x/errorsx"
 
+	"github.com/ory/x/jsonx"
+
 	"github.com/ory/herodot"
 
 	"github.com/ory/kratos/driver/config"
+	"github.com/ory/kratos/identity"
 	"github.com/ory/kratos/x"
+
 )
 
 type (
 	handlerDependencies interface {
 		ManagementProvider
 		PersistenceProvider
+		identity.PoolProvider
 		x.WriterProvider
 		x.LoggingProvider
 		x.CSRFProvider
@@ -45,6 +51,7 @@ func NewHandler(
 
 const (
 	RouteWhoami = "/sessions/whoami"
+	RouteAdminIssue = "/sessions/issue"
 )
 
 func (h *Handler) RegisterAdminRoutes(admin *x.RouterAdmin) {
@@ -53,6 +60,8 @@ func (h *Handler) RegisterAdminRoutes(admin *x.RouterAdmin) {
 		// Redirect to public endpoint
 		admin.Handle(m, RouteWhoami, x.RedirectToPublicRoute(h.r))
 	}
+
+	admin.POST(RouteAdminIssue, h.issueToken)
 }
 
 func (h *Handler) RegisterPublicRoutes(public *x.RouterPublic) {
@@ -62,6 +71,65 @@ func (h *Handler) RegisterPublicRoutes(public *x.RouterPublic) {
 		http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace} {
 		public.Handle(m, RouteWhoami, h.whoami)
 	}
+}
+
+// Request object for issueToken
+//
+// swagger:response issueTokenRequest
+// nolint:deadcode,unused
+type issueTokenRequest struct {
+	// in: body
+	// required: true
+	IdentityID string `json:"identityID"`
+}
+
+// Response object for issueToken
+//
+// swagger:response issueTokenResponse
+// nolint:deadcode,unused
+type issueTokenResponse struct {
+}
+
+// swagger:route GET /sessions/issue admin issueToken
+//
+// Issue a token for the given identity
+//
+//     Produces:
+//     - application/json
+//
+//     Schemes: http, https
+//
+//     Responses:
+//       200: issueTokenResponse
+//       500: genericError
+func (h *Handler) issueToken(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+	itr := issueTokenRequest{}
+	if err := jsonx.NewStrictDecoder(r.Body).Decode(&itr); err != nil {
+		h.r.Writer().WriteErrorCode(w, r, http.StatusBadRequest, errors.WithStack(err))
+		return
+	}
+
+	identityID := x.ParseUUID(itr.IdentityID)
+	id, err := h.r.IdentityPool().GetIdentity(ctx, identityID)
+	if err != nil {
+		h.r.Writer().WriteErrorCode(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	s, err := NewActiveSession(id, h.r.Config(ctx), time.Now().UTC())
+	if err != nil {
+		h.r.Writer().WriteErrorCode(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	s = s.Declassify()
+
+	if err := h.r.SessionManager().AdminCreateAndIssueCookie(r.Context(), w, r, s); err != nil {
+		h.r.Writer().WriteErrorCode(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	h.r.Writer().Write(w, r, &issueTokenResponse{})
 }
 
 // nolint:deadcode,unused

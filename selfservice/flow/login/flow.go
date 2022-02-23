@@ -82,6 +82,9 @@ type Flow struct {
 
 	// Forced stores whether this login flow should enforce re-authentication.
 	Forced bool `json:"forced" db:"forced"`
+
+	// LoginHint stores the email address we were passed when OIDC was invoked
+	LoginHint string `json:"-" db:"-"`
 }
 
 func NewFlow(conf *config.Config, exp time.Duration, csrf string, r *http.Request, flowType flow.Type) *Flow {
@@ -139,4 +142,8 @@ func (f *Flow) AppendTo(src *url.URL) *url.URL {
 
 func (f Flow) GetNID() uuid.UUID {
 	return f.NID
+}
+
+func (f *Flow) GetLoginHint() string {
+	return f.LoginHint
 }

@@ -30,4 +30,5 @@ type Flow interface {
 	GetID() uuid.UUID
 	GetType() Type
 	GetRequestURL() string
+	GetLoginHint() string
 }

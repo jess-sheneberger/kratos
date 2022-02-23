@@ -54,6 +54,9 @@ type Flow struct {
 	// not set.
 	Active sqlxx.NullString `json:"active,omitempty" faker:"-" db:"active_method"`
 
+	// Returns the token when requesting the verification email be sent
+	Token string `json:"token,omitempty" db:"-"`
+
 	// UI contains data which must be shown in the user interface.
 	//
 	// required: true
@@ -149,4 +152,8 @@ func (f Flow) GetID() uuid.UUID {
 
 func (f Flow) GetNID() uuid.UUID {
 	return f.NID
+}
+
+func (f *Flow) GetLoginHint() string {
+	return ""
 }

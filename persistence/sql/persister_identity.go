@@ -159,6 +159,7 @@ func (p *Persister) createIdentityCredentials(ctx context.Context, i *identity.I
 }
 
 func (p *Persister) createVerifiableAddresses(ctx context.Context, i *identity.Identity) error {
+
 	for k := range i.VerifiableAddresses {
 		i.VerifiableAddresses[k].IdentityID = i.ID
 		i.VerifiableAddresses[k].NID = corp.ContextualizeNID(ctx, p.nid)
@@ -317,7 +318,7 @@ func (p *Persister) UpdateIdentity(ctx context.Context, i *identity.Identity) er
 		if err := p.createRecoveryAddresses(ctx, i); err != nil {
 			return err
 		}
-
+		
 		return p.createIdentityCredentials(ctx, i)
 	}))
 }

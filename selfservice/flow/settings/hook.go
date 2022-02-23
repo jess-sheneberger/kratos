@@ -100,7 +100,7 @@ func (e *HookExecutor) PostSettingsHook(w http.ResponseWriter, r *http.Request, 
 		WithField("identity_id", i.ID).
 		WithField("flow_method", settingsType).
 		Debug("Running PostSettingsPrePersistHooks.")
-
+	
 	config := new(postSettingsHookOptions)
 	for _, f := range opts {
 		f(config)

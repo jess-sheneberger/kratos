@@ -3,7 +3,7 @@ package oidc_test
 import (
 	"context"
 	"encoding/json"
-	"net/http"
+  "net/http"
 	"net/url"
 	"strconv"
 	"testing"
@@ -1652,6 +1652,7 @@ func TestPopulateSettingsMethod(t *testing.T) {
 				node.NewCSRFNode(x.FakeCSRFToken),
 				oidc.NewLinkNode("facebook"),
 				oidc.NewLinkNode("github"),
+				oidc.NewUnlinkNode("google"),
 			},
 			i: &identity.Credentials{Type: identity.CredentialsTypeOIDC, Identifiers: []string{
 				"google:1234",
@@ -1687,7 +1688,7 @@ func TestPopulateSettingsMethod(t *testing.T) {
 		},
 	} {
 		t.Run("iteration="+strconv.Itoa(k), func(t *testing.T) {
-			reg := nreg(t, &oidc.ConfigurationCollection{Providers: tc.c})
+      reg := nreg(t, &oidc.ConfigurationCollection{Providers: tc.c})
 			i := &identity.Identity{
 				Traits:      []byte(`{"subject":"foo@bar.com"}`),
 				Credentials: make(map[identity.CredentialsType]identity.Credentials, 2),
@@ -1703,7 +1704,7 @@ func TestPopulateSettingsMethod(t *testing.T) {
 				}
 			}
 			actual := populate(t, reg, i, nr())
-			assert.EqualValues(t, tc.e, actual.Nodes)
+      assert.EqualValues(t, tc.e, actual.Nodes)
 		})
 	}
 }

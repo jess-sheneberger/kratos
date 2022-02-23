@@ -23,6 +23,7 @@ import (
 
 var (
 	ErrHookAbortFlow = errors.New("aborted verification hook execution")
+	ErrInvalidCode   = errors.New("invalid code")
 )
 
 type (

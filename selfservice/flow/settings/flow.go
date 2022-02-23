@@ -167,3 +167,7 @@ func (f *Flow) Valid(s *session.Session) error {
 
 	return nil
 }
+
+func (f *Flow) GetLoginHint() string {
+	return ""
+}
