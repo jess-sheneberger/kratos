@@ -3,8 +3,8 @@ id: sign-in-with-github-google-facebook-linkedin
 title: Sign in with GitHub, GitLab, Google, Facebook, LinkedIn, Microsoft ...
 ---
 
-In this document we will take a look at setting up "Sign in with GitHub" using
-Ory Kratos.
+In this document we will take a look at setting up "Social Sign In" with
+different providers using Ory Kratos.
 
 Run the [Quickstart](../quickstart.mdx) with Docker Compose:
 
@@ -196,7 +196,7 @@ local claims = {
       // enumeration attacks, especially if the value is used for
       // e.g. verification or as a password login identifier.
       //
-      // It is assumed that Slack requires a email to be verifed before accessable via Oauth (because they don't provide a email_verified field).
+      // It is assumed that Slack requires an email to be verified before accessible via OAuth (because they don't provide a email_verified field).
       email: claims.email
     },
   },
@@ -236,8 +236,10 @@ Slack is now an option to log in via Kratos.
   allowfullscreen
 />
 
-To set up "Sign in with GitHub" you must create a
-[GitHub OAuth2 Client](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/).
+To set up "Sign in with GitHub" you must create either a
+[GitHub OAuth2 Client](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/)
+or
+[GitHub App Client](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app).
 
 Set the "Authorization callback URL" to:
 
@@ -265,6 +267,9 @@ at
 [GitHub's Scope Docs](https://developer.github.com/apps/building-oauth-apps/understanding-scopes-for-oauth-apps/).
 Not all GitHub fields are supported however. Check the list of supported fields
 [in Kratos' source code](https://github.com/ory/kratos/blob/v0.2.1-alpha.1/selfservice/strategy/oidc/provider_github.go#L72-L98).
+
+Only for `Github Oauth2` as `GitHub App` does not have scope. See the
+[Differences between GitHub Apps and OAuth2](https://docs.github.com/en/developers/apps/getting-started-with-apps/differences-between-github-apps-and-oauth-apps)
 
 :::
 
@@ -294,7 +299,9 @@ local claims = {
 }
 ```
 
-Now, enable the GitHub provider in the Ory Kratos config located at
+For `GitHub App` use `github-app` and for `GitHub OAuth2` use `github`
+
+Now, enable the GitHub OAuth2 provider in the Ory Kratos config located at
 `<kratos-directory>/contrib/quickstart/kratos/email-password/kratos.yml`.
 
 ```yaml title="contrib/quickstart/kratos/email-password/kratos.yml"
@@ -312,6 +319,24 @@ selfservice:
             mapper_url: file:///etc/config/kratos/oidc.github.jsonnet
             scope:
               - user:email
+```
+
+Or enable the GitHub App provider in the Ory Kratos config located at
+`<kratos-directory>/contrib/quickstart/kratos/email-password/kratos.yml`.
+
+```yaml title="contrib/quickstart/kratos/email-password/kratos.yml"
+# $ kratos -c path/to/my/kratos/config.yml serve
+selfservice:
+  methods:
+    oidc:
+      enabled: true
+      config:
+        providers:
+          - id: github # this is `<provider-id>` in the Authorization callback URL. DO NOT CHANGE IT ONCE SET!
+            provider: github-app
+            client_id: .... # Replace this with the OAuth2 Client ID provided by GitHub
+            client_secret: .... # Replace this with the OAuth2 Client Secret provided by GitHub
+            mapper_url: file:///etc/config/kratos/oidc.github.jsonnet
 ```
 
 Next, open the login endpoint of the SecureApp and you should see the GitHub
@@ -661,7 +686,7 @@ The pattern of this URL is:
 https://<domain-of-ory-kratos>:<public-port>/self-service/methods/oidc/callback/<provider-id>
 ```
 
-Facebook requires https the redirect URIs!
+Facebook requires HTTPS redirect URIs!
 
 :::note
 
@@ -690,7 +715,7 @@ local claims = std.extVar('claims');
       // enumeration attacks, especially if the value is used for
       // e.g. verification or as a password login identifier.
       //
-      // It is assumed that Facebook requires a email to be verifed before accessable via Oauth (because they don't provide an email_verified field).
+      // It is assumed that Facebook requires an email to be verified before accessible via OAuth (because they don't provide an email_verified field).
       //
       // The email might be empty if the user is not allowed to an email scope.
       [if "email" in claims then "email" else null]: claims.email,
@@ -975,6 +1000,147 @@ selfservice:
 
 Next, open the login endpoint of the SecureApp and you should see the Yandex
 Login option!
+
+## Apple
+
+To set up "Sign in with Apple" you must
+[create an app, a service and a private key](https://developer.okta.com/blog/2019/06/04/what-the-heck-is-sign-in-with-apple#create-an-app-id).
+
+Set the "Redirect URI" to:
+
+```
+https://playground.projects.oryapis.com/api/kratos/public/self-service/methods/oidc/callback/apple
+```
+
+Due to implementation constraints, the provider ID at the end of this address
+cannot be changed.
+
+The pattern of this URL is:
+
+```
+http(s)://<domain-of-ory-kratos>:<public-port>/self-service/methods/oidc/callback/<provider-id>
+```
+
+The provider ID must point to the provider's ID set in the Ory Kratos
+configuration file (explained in further detail at
+[OpenID Connect and OAuth2 Credentials](../concepts/credentials/openid-connect-oidc-oauth2.mdx)).
+
+As explained in
+[OpenID Connect and OAuth2 Credentials](../concepts/credentials/openid-connect-oidc-oauth2.mdx),
+you must also create a Jsonnet code snippet for the provider. Save the code in
+`<kratos-directory>/contrib/quickstart/kratos/email-password/oidc.apple.jsonnet`.
+
+```json title="contrib/quickstart/kratos/email-password/oidc.apple.jsonnet"
+local claims = {
+  email_verified: false
+} + std.extVar('claims');
+
+{
+  identity: {
+    traits: {
+      // Allowing unverified email addresses enables account
+      // enumeration attacks, especially if the value is used for
+      // e.g. verification or as a password login identifier.
+      //
+      // Therefore we only return the email if it (a) exists and (b) is marked verified
+      // by Apple.
+      [if "email" in claims && claims.email_verified then "email" else null]: claims.email,
+    },
+  },
+}
+```
+
+Now, enable the Apple provider in the Ory Kratos config located at
+`<kratos-directory>/contrib/quickstart/kratos/email-password/kratos.yml`.
+
+```yaml title="contrib/quickstart/kratos/email-password/kratos.yml"
+# $ kratos -c path/to/my/kratos/config.yml serve
+selfservice:
+  methods:
+    oidc:
+      enabled: true
+      config:
+        providers:
+          - id: apple # this is `<provider-id>` in the Authorization callback URL. It should be "apple"
+            provider: apple
+            client_id: .... # Replace this with the Services ID provided by Apple
+            team_id: .... # Replace this with the Team ID provided by Apple
+            private_key_id: .... # Replace this with the private key identifier generated by Apple
+            private_key: |
+              -----BEGIN PRIVATE KEY-----
+              .... # Replace this by the content of the private key downloaded from Apple
+              -----END PRIVATE KEY-----
+            mapper_url: file:///etc/config/kratos/oidc.apple.jsonnet
+            scope:
+              - email
+```
+
+Next, open the login endpoint of the SecureApp and you should see the Apple
+Login option!
+
+## Spotify
+
+To set up "Sign in with Spotify" you must create an
+[Spotify Application](https://developer.spotify.com/dashboard/applications).
+
+Set the "Redirect URI" to:
+
+```
+https://playground.projects.oryapis.com/api/kratos/public/self-service/methods/oidc/callback/spotify
+```
+
+The pattern of this URL is:
+
+```
+http(s)://<domain-of-ory-kratos>:<public-port>/self-service/methods/oidc/callback/<provider-id>
+```
+
+:::note
+
+While Spotify
+[provides an OIDC discovery URL](https://accounts.spotify.com/.well-known/openid-configuration),
+Spotify does not actually support the `openid` claim and only returns an access
+token. Therefore, Ory Kratos makes a request to
+[Spotify's /me API](https://developer.spotify.com/documentation/web-api/reference/#/operations/get-current-users-profile)
+and adds the user info to `std.extVar('claims')`.
+
+:::
+
+```json title="contrib/quickstart/kratos/email-password/oidc.spotify.jsonnet"
+# claims contains all the data sent by the upstream.
+local claims = std.extVar('claims');
+
+{
+  identity: {
+    traits: {
+      email: claims.email
+    },
+  },
+}
+```
+
+Now, enable the Spotify provider in the Ory Kratos config located at
+`<kratos-directory>/contrib/quickstart/kratos/email-password/kratos.yml`.
+
+```yaml title="contrib/quickstart/kratos/email-password/kratos.yml"
+# $ kratos -c path/to/my/kratos/config.yml serve
+selfservice:
+  methods:
+    oidc:
+      enabled: true
+      config:
+        providers:
+          - id: spotify # this is `<provider-id>` in the Authorization callback URL. DO NOT CHANGE IT ONCE SET!
+            provider: spotify
+            client_id: .... # Replace this with the OAuth2 Client ID provided by Spotify
+            client_secret: .... # Replace this with the OAuth2 Client Secret provided by Spotify
+            mapper_url: file:///etc/config/kratos/oidc.spotify.jsonnet
+            scope:
+              - user-read-email
+              - user-read-private
+```
+
+Spotify is now an option to log in via Kratos.
 
 ## LinkedIn
 

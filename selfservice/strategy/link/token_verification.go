@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/ory/kratos/selfservice/flow"
+
 	"github.com/ory/kratos/corp"
 	"github.com/ory/x/randx"
 
@@ -97,7 +99,7 @@ func VerifyTokenCode(codeSecret, token, code string) bool {
 
 func (f *VerificationToken) Valid() error {
 	if f.ExpiresAt.Before(time.Now().UTC()) {
-		return errors.WithStack(verification.NewFlowExpiredError(f.ExpiresAt))
+		return errors.WithStack(flow.NewFlowExpiredError(f.ExpiresAt))
 	}
 	return nil
 }

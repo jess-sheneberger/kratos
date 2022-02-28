@@ -7,9 +7,6 @@ title: Configuration
 OPEN AN ISSUE IF YOU WOULD LIKE TO MAKE ADJUSTMENTS HERE AND MAINTAINERS WILL HELP YOU LOCATE THE RIGHT
 FILE -->
 
-If file `$HOME/.kratos.yaml` exists, it will be used as a configuration file
-which supports all configuration settings listed below.
-
 You can load the config file from another source using the
 `-c path/to/config.yaml` or `--config path/to/config.yaml` flag:
 `kratos --config path/to/config.yaml`.
@@ -18,11 +15,15 @@ Config files can be formatted as JSON, YAML and TOML. Some configuration values
 support reloading without server restart. All configuration values can be set
 using environment variables, as documented below.
 
+:::warning Disclaimer
+
 This reference configuration documents all keys, also deprecated ones! It is a
 reference for all possible configuration values.
 
 If you are looking for an example configuration, it is better to try out the
 quickstart.
+
+:::
 
 To find out more about edge cases like setting string array values through
 environmental variables head to the
@@ -185,7 +186,7 @@ selfservice:
                   name: ''
                   value: ''
                   in: header
-              body: ''
+              body: file:///path/to/body.jsonnet
 
       ## after ##
       #
@@ -269,7 +270,7 @@ selfservice:
                   name: ''
                   value: ''
                   in: header
-              body: ''
+              body: file:///path/to/body.jsonnet
 
         ## Redirect browsers to set URL per default ##
         #
@@ -346,7 +347,7 @@ selfservice:
                   name: ''
                   value: ''
                   in: header
-              body: ''
+              body: file:///path/to/body.jsonnet
 
       ## after ##
       #
@@ -430,7 +431,7 @@ selfservice:
                   name: ''
                   value: ''
                   in: header
-              body: ''
+              body: file:///path/to/body.jsonnet
 
         ## Redirect browsers to set URL per default ##
         #
@@ -507,7 +508,7 @@ selfservice:
                   name: ''
                   value: ''
                   in: header
-              body: ''
+              body: file:///path/to/body.jsonnet
 
         ## Redirect browsers to set URL per default ##
         #
@@ -600,7 +601,7 @@ selfservice:
                   name: ''
                   value: ''
                   in: header
-              body: ''
+              body: file:///path/to/body.jsonnet
 
         ## Redirect browsers to set URL per default ##
         #
@@ -708,6 +709,24 @@ selfservice:
       #
       privileged_session_max_age: 1h
 
+      ## Required Authenticator Assurance Level ##
+      #
+      # Sets what Authenticator Assurance Level (used for 2FA) is required to access this feature. If set to `highest_available` then this endpoint requires the highest AAL the identity has set up. If set to `aal1` then the identity can access this feature without 2FA.
+      #
+      # Default value: highest_available
+      #
+      # One of:
+      # - aal1
+      # - highest_available
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export SELFSERVICE_FLOWS_SETTINGS_REQUIRED_AAL=<value>
+      # - Windows Command Line (CMD):
+      #    > set SELFSERVICE_FLOWS_SETTINGS_REQUIRED_AAL=<value>
+      #
+      required_aal: aal1
+
       ## after ##
       #
       after:
@@ -733,7 +752,7 @@ selfservice:
                     name: ''
                     value: ''
                     in: header
-                body: ''
+                body: file:///path/to/body.jsonnet
 
           ## Redirect browsers to set URL per default ##
           #
@@ -773,7 +792,7 @@ selfservice:
                     name: ''
                     value: ''
                     in: header
-                body: ''
+                body: file:///path/to/body.jsonnet
 
           ## Redirect browsers to set URL per default ##
           #
@@ -810,7 +829,7 @@ selfservice:
                   name: ''
                   value: ''
                   in: header
-              body: ''
+              body: file:///path/to/body.jsonnet
 
         ## Redirect browsers to set URL per default ##
         #
@@ -851,6 +870,28 @@ selfservice:
     ## link ##
     #
     link:
+      ## Link Configuration ##
+      #
+      # Additional configuration for the link strategy.
+      #
+      config:
+        ## How long a link is valid for ##
+        #
+        # Default value: 1h
+        #
+        # Examples:
+        # - 1h
+        # - 1m
+        # - 1s
+        #
+        # Set this value using environment variables on
+        # - Linux/macOS:
+        #    $ export SELFSERVICE_METHODS_LINK_CONFIG_LIFESPAN=<value>
+        # - Windows Command Line (CMD):
+        #    > set SELFSERVICE_METHODS_LINK_CONFIG_LIFESPAN=<value>
+        #
+        lifespan: 1h
+
       ## Enables Link Method ##
       #
       # Default value: true
@@ -871,6 +912,20 @@ selfservice:
       # Define how passwords are validated.
       #
       config:
+        ## Enable the HaveIBeenPwned API ##
+        #
+        # If set to false the password validation does not utilize the Have I Been Pwnd API.
+        #
+        # Default value: true
+        #
+        # Set this value using environment variables on
+        # - Linux/macOS:
+        #    $ export SELFSERVICE_METHODS_PASSWORD_CONFIG_HAVEIBEENPWNED_ENABLED=<value>
+        # - Windows Command Line (CMD):
+        #    > set SELFSERVICE_METHODS_PASSWORD_CONFIG_HAVEIBEENPWNED_ENABLED=<value>
+        #
+        haveibeenpwned_enabled: false
+
         ## Allow Password Breaches ##
         #
         # Defines how often a password may have been breached before it is rejected.
@@ -901,20 +956,6 @@ selfservice:
         #
         ignore_network_errors: false
 
-        ## Enable or Disable the HaveIBeenPwned API ##
-        #
-        # If set to false the password validation does not utilize the Have I Been Pwnd API.
-        #
-        # Default value: true
-        #
-        # Set this value using environment variables on
-        # - Linux/macOS:
-        #    $ export SELFSERVICE_METHODS_PASSWORD_CONFIG_HAVEIBEENPWNED_ENABLED=<value>
-        # - Windows Command Line (CMD):
-        #    > set SELFSERVICE_METHODS_PASSWORD_CONFIG_HAVEIBEENPWNED_ENABLED=<value>
-        #
-        haveibeenpwned_enabled: true
-
         ## Custom haveibeenpwned host ##
         #
         # Allows changing the default HIBP host to a self hosted version.
@@ -938,6 +979,132 @@ selfservice:
       #    $ export SELFSERVICE_METHODS_PASSWORD_ENABLED=<value>
       # - Windows Command Line (CMD):
       #    > set SELFSERVICE_METHODS_PASSWORD_ENABLED=<value>
+      #
+      enabled: false
+
+    ## totp ##
+    #
+    totp:
+      ## TOTP Configuration ##
+      #
+      config:
+        ## TOTP Issuer ##
+        #
+        # The issuer (e.g. a domain name) will be shown in the TOTP app (e.g. Google Authenticator). It helps the user differentiate between different codes.
+        #
+        # Set this value using environment variables on
+        # - Linux/macOS:
+        #    $ export SELFSERVICE_METHODS_TOTP_CONFIG_ISSUER=<value>
+        # - Windows Command Line (CMD):
+        #    > set SELFSERVICE_METHODS_TOTP_CONFIG_ISSUER=<value>
+        #
+        issuer: ''
+
+      ## Enables the TOTP method ##
+      #
+      # Default value: false
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export SELFSERVICE_METHODS_TOTP_ENABLED=<value>
+      # - Windows Command Line (CMD):
+      #    > set SELFSERVICE_METHODS_TOTP_ENABLED=<value>
+      #
+      enabled: false
+
+    ## lookup_secret ##
+    #
+    lookup_secret:
+      ## Enables the lookup secret method ##
+      #
+      # Default value: false
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export SELFSERVICE_METHODS_LOOKUP_SECRET_ENABLED=<value>
+      # - Windows Command Line (CMD):
+      #    > set SELFSERVICE_METHODS_LOOKUP_SECRET_ENABLED=<value>
+      #
+      enabled: false
+
+    ## webauthn ##
+    #
+    webauthn:
+      ## WebAuthn Configuration ##
+      #
+      config:
+        ## Relying Party (RP) Config ##
+        #
+        rp:
+          ## Relying Party Identifier ##
+          #
+          # The id must be a subset of the domain currently in the browser.
+          #
+          # Examples:
+          # - ory.sh
+          #
+          # Set this value using environment variables on
+          # - Linux/macOS:
+          #    $ export SELFSERVICE_METHODS_WEBAUTHN_CONFIG_RP_ID=<value>
+          # - Windows Command Line (CMD):
+          #    > set SELFSERVICE_METHODS_WEBAUTHN_CONFIG_RP_ID=<value>
+          #
+          id: ory.sh
+
+          ## Relying Party Display Name ##
+          #
+          # An name to help the user identify this RP.
+          #
+          # Examples:
+          # - Ory Foundation
+          #
+          # Set this value using environment variables on
+          # - Linux/macOS:
+          #    $ export SELFSERVICE_METHODS_WEBAUTHN_CONFIG_RP_DISPLAY_NAME=<value>
+          # - Windows Command Line (CMD):
+          #    > set SELFSERVICE_METHODS_WEBAUTHN_CONFIG_RP_DISPLAY_NAME=<value>
+          #
+          display_name: Ory Foundation
+
+          ## Relying Party Icon ##
+          #
+          # An icon to help the user identify this RP.
+          #
+          # Examples:
+          # - https://www.ory.sh/an-icon.png
+          #
+          # Set this value using environment variables on
+          # - Linux/macOS:
+          #    $ export SELFSERVICE_METHODS_WEBAUTHN_CONFIG_RP_ICON=<value>
+          # - Windows Command Line (CMD):
+          #    > set SELFSERVICE_METHODS_WEBAUTHN_CONFIG_RP_ICON=<value>
+          #
+          icon: https://www.ory.sh/an-icon.png
+
+          ## Relying Party Origin ##
+          #
+          # An explicit RP origin. If left empty, this defaults to `id`.
+          #
+          # Examples:
+          # - https://www.ory.sh/login
+          #
+          # Set this value using environment variables on
+          # - Linux/macOS:
+          #    $ export SELFSERVICE_METHODS_WEBAUTHN_CONFIG_RP_ORIGIN=<value>
+          # - Windows Command Line (CMD):
+          #    > set SELFSERVICE_METHODS_WEBAUTHN_CONFIG_RP_ORIGIN=<value>
+          #
+          origin: https://www.ory.sh/login
+
+      ## Enables the WebAuthn method ##
+      #
+      # Default value: false
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export SELFSERVICE_METHODS_WEBAUTHN_ENABLED=<value>
+      # - Windows Command Line (CMD):
+      #    > set SELFSERVICE_METHODS_WEBAUTHN_ENABLED=<value>
       #
       enabled: false
 
@@ -969,14 +1136,20 @@ selfservice:
           - id: google
             provider: google
             client_id: ''
-            client_secret: ''
             mapper_url: file://path/to/oidc.jsonnet
+            client_secret: ''
             issuer_url: https://accounts.google.com
             auth_url: https://accounts.google.com/o/oauth2/v2/auth
             token_url: https://www.googleapis.com/oauth2/v4/token
             scope:
               - offline_access
             tenant: common
+            team_id: KP76DQS54M
+            private_key_id: UX56C66723
+            private_key: |-
+              -----BEGIN PRIVATE KEY-----
+              ........
+              -----END PRIVATE KEY-----
             requested_claims:
               id_token:
                 email:
@@ -1036,119 +1209,6 @@ serve:
   ## public ##
   #
   public:
-    ## Base URL ##
-    #
-    # The URL where the endpoint is exposed at. This domain is used to generate redirects, form URLs, and more.
-    #
-    # Examples:
-    # - https://my-app.com/
-    # - https://my-app.com/.ory/kratos/public
-    #
-    # Set this value using environment variables on
-    # - Linux/macOS:
-    #    $ export SERVE_PUBLIC_BASE_URL=<value>
-    # - Windows Command Line (CMD):
-    #    > set SERVE_PUBLIC_BASE_URL=<value>
-    #
-    base_url: https://my-app.com/
-
-    ## Domain Aliases ##
-    #
-    # Adds an alias domain. If a request with the hostname (FQDN) matching the hostname in the alias is found, that URL is used as the base URL.
-    #
-    # Set this value using environment variables on
-    # - Linux/macOS:
-    #    $ export SERVE_PUBLIC_DOMAIN_ALIASES=<value>
-    # - Windows Command Line (CMD):
-    #    > set SERVE_PUBLIC_DOMAIN_ALIASES=<value>
-    #
-    domain_aliases:
-      - match_domain: localhost
-        base_path: /
-        scheme: http
-
-    ## Public Host ##
-    #
-    # The host (interface) kratos' public endpoint listens on.
-    #
-    # Default value: 0.0.0.0
-    #
-    # Set this value using environment variables on
-    # - Linux/macOS:
-    #    $ export SERVE_PUBLIC_HOST=<value>
-    # - Windows Command Line (CMD):
-    #    > set SERVE_PUBLIC_HOST=<value>
-    #
-    host: ''
-
-    ## Public Port ##
-    #
-    # The port kratos' public endpoint listens on.
-    #
-    # Default value: 4433
-    #
-    # Minimum value: 1
-    #
-    # Maximum value: 65535
-    #
-    # Examples:
-    # - 4433
-    #
-    # Set this value using environment variables on
-    # - Linux/macOS:
-    #    $ export SERVE_PUBLIC_PORT=<value>
-    # - Windows Command Line (CMD):
-    #    > set SERVE_PUBLIC_PORT=<value>
-    #
-    port: 4433
-
-    ## socket ##
-    #
-    # Sets the permissions of the unix socket
-    #
-    socket:
-      ## group ##
-      #
-      # Group of unix socket. If empty, the group will be the primary group of the user running Kratos.
-      #
-      # Set this value using environment variables on
-      # - Linux/macOS:
-      #    $ export SERVE_PUBLIC_SOCKET_GROUP=<value>
-      # - Windows Command Line (CMD):
-      #    > set SERVE_PUBLIC_SOCKET_GROUP=<value>
-      #
-      group: ''
-
-      ## mode ##
-      #
-      # Mode of unix socket in numeric form
-      #
-      # Default value: 493
-      #
-      # Minimum value: 0
-      #
-      # Maximum value: 511
-      #
-      # Set this value using environment variables on
-      # - Linux/macOS:
-      #    $ export SERVE_PUBLIC_SOCKET_MODE=<value>
-      # - Windows Command Line (CMD):
-      #    > set SERVE_PUBLIC_SOCKET_MODE=<value>
-      #
-      mode: 0
-
-      ## owner ##
-      #
-      # Owner of unix socket. If empty, the owner will be the user running Kratos.
-      #
-      # Set this value using environment variables on
-      # - Linux/macOS:
-      #    $ export SERVE_PUBLIC_SOCKET_OWNER=<value>
-      # - Windows Command Line (CMD):
-      #    > set SERVE_PUBLIC_SOCKET_OWNER=<value>
-      #
-      owner: ''
-
     ## cors ##
     #
     # Configures Cross Origin Resource Sharing for public endpoints.
@@ -1291,9 +1351,205 @@ serve:
       #
       enabled: false
 
+    ## Base URL ##
+    #
+    # The URL where the endpoint is exposed at. This domain is used to generate redirects, form URLs, and more.
+    #
+    # Examples:
+    # - https://my-app.com/
+    # - https://my-app.com/.ory/kratos/public
+    #
+    # Set this value using environment variables on
+    # - Linux/macOS:
+    #    $ export SERVE_PUBLIC_BASE_URL=<value>
+    # - Windows Command Line (CMD):
+    #    > set SERVE_PUBLIC_BASE_URL=<value>
+    #
+    base_url: https://my-app.com/
+
+    ## Domain Aliases ##
+    #
+    # Adds an alias domain. If a request with the hostname (FQDN) matching the hostname in the alias is found, that URL is used as the base URL.
+    #
+    # Set this value using environment variables on
+    # - Linux/macOS:
+    #    $ export SERVE_PUBLIC_DOMAIN_ALIASES=<value>
+    # - Windows Command Line (CMD):
+    #    > set SERVE_PUBLIC_DOMAIN_ALIASES=<value>
+    #
+    domain_aliases:
+      - match_domain: localhost
+        base_path: /
+        scheme: http
+
+    ## Public Host ##
+    #
+    # The host (interface) kratos' public endpoint listens on.
+    #
+    # Default value: 0.0.0.0
+    #
+    # Set this value using environment variables on
+    # - Linux/macOS:
+    #    $ export SERVE_PUBLIC_HOST=<value>
+    # - Windows Command Line (CMD):
+    #    > set SERVE_PUBLIC_HOST=<value>
+    #
+    host: ''
+
+    ## Public Port ##
+    #
+    # The port kratos' public endpoint listens on.
+    #
+    # Default value: 4433
+    #
+    # Minimum value: 1
+    #
+    # Maximum value: 65535
+    #
+    # Examples:
+    # - 4433
+    #
+    # Set this value using environment variables on
+    # - Linux/macOS:
+    #    $ export SERVE_PUBLIC_PORT=<value>
+    # - Windows Command Line (CMD):
+    #    > set SERVE_PUBLIC_PORT=<value>
+    #
+    port: 4433
+
+    ## socket ##
+    #
+    # Sets the permissions of the unix socket
+    #
+    socket:
+      ## group ##
+      #
+      # Group of unix socket. If empty, the group will be the primary group of the user running Kratos.
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export SERVE_PUBLIC_SOCKET_GROUP=<value>
+      # - Windows Command Line (CMD):
+      #    > set SERVE_PUBLIC_SOCKET_GROUP=<value>
+      #
+      group: ''
+
+      ## mode ##
+      #
+      # Mode of unix socket in numeric form
+      #
+      # Default value: 493
+      #
+      # Minimum value: 0
+      #
+      # Maximum value: 511
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export SERVE_PUBLIC_SOCKET_MODE=<value>
+      # - Windows Command Line (CMD):
+      #    > set SERVE_PUBLIC_SOCKET_MODE=<value>
+      #
+      mode: 0
+
+      ## owner ##
+      #
+      # Owner of unix socket. If empty, the owner will be the user running Kratos.
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export SERVE_PUBLIC_SOCKET_OWNER=<value>
+      # - Windows Command Line (CMD):
+      #    > set SERVE_PUBLIC_SOCKET_OWNER=<value>
+      #
+      owner: ''
+
+    ## HTTPS ##
+    #
+    # Configure HTTP over TLS (HTTPS). All options can also be set using environment variables by replacing dots (`.`) with underscores (`_`) and uppercasing the key. For example, `some.prefix.tls.key.path` becomes `export SOME_PREFIX_TLS_KEY_PATH`. If all keys are left undefined, TLS will be disabled.
+    #
+    tls:
+      ## TLS Certificate (PEM) ##
+      #
+      cert:
+        ## base64 ##
+        #
+        # Set this value using environment variables on
+        # - Linux/macOS:
+        #    $ export SERVE_PUBLIC_TLS_CERT_BASE64=<value>
+        # - Windows Command Line (CMD):
+        #    > set SERVE_PUBLIC_TLS_CERT_BASE64=<value>
+        #
+        base64: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tXG5NSUlEWlRDQ0FrMmdBd0lCQWdJRVY1eE90REFOQmdr...
+
+        ## path ##
+        #
+        # Set this value using environment variables on
+        # - Linux/macOS:
+        #    $ export SERVE_PUBLIC_TLS_CERT_PATH=<value>
+        # - Windows Command Line (CMD):
+        #    > set SERVE_PUBLIC_TLS_CERT_PATH=<value>
+        #
+        path: path/to/file.pem
+
+      ## Private Key (PEM) ##
+      #
+      key:
+        ## base64 ##
+        #
+        # Set this value using environment variables on
+        # - Linux/macOS:
+        #    $ export SERVE_PUBLIC_TLS_KEY_BASE64=<value>
+        # - Windows Command Line (CMD):
+        #    > set SERVE_PUBLIC_TLS_KEY_BASE64=<value>
+        #
+        base64: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tXG5NSUlEWlRDQ0FrMmdBd0lCQWdJRVY1eE90REFOQmdr...
+
+        ## path ##
+        #
+        # Set this value using environment variables on
+        # - Linux/macOS:
+        #    $ export SERVE_PUBLIC_TLS_KEY_PATH=<value>
+        # - Windows Command Line (CMD):
+        #    > set SERVE_PUBLIC_TLS_KEY_PATH=<value>
+        #
+        path: path/to/file.pem
+
+    ## request_log ##
+    #
+    request_log:
+      ## Disable health endpoints request logging ##
+      #
+      # Disable request logging for /health/alive and /health/ready endpoints
+      #
+      # Default value: false
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export SERVE_PUBLIC_REQUEST_LOG_DISABLE_FOR_HEALTH=<value>
+      # - Windows Command Line (CMD):
+      #    > set SERVE_PUBLIC_REQUEST_LOG_DISABLE_FOR_HEALTH=<value>
+      #
+      disable_for_health: false
+
   ## admin ##
   #
   admin:
+    ## Admin Base URL ##
+    #
+    # The URL where the admin endpoint is exposed at.
+    #
+    # Examples:
+    # - https://kratos.private-network:4434/
+    #
+    # Set this value using environment variables on
+    # - Linux/macOS:
+    #    $ export SERVE_ADMIN_BASE_URL=<value>
+    # - Windows Command Line (CMD):
+    #    > set SERVE_ADMIN_BASE_URL=<value>
+    #
+    base_url: https://kratos.private-network:4434/
+
     ## Admin Host ##
     #
     # The host (interface) kratos' admin endpoint listens on.
@@ -1376,20 +1632,73 @@ serve:
       #
       owner: ''
 
-    ## Admin Base URL ##
+    ## HTTPS ##
     #
-    # The URL where the admin endpoint is exposed at.
+    # Configure HTTP over TLS (HTTPS). All options can also be set using environment variables by replacing dots (`.`) with underscores (`_`) and uppercasing the key. For example, `some.prefix.tls.key.path` becomes `export SOME_PREFIX_TLS_KEY_PATH`. If all keys are left undefined, TLS will be disabled.
     #
-    # Examples:
-    # - https://kratos.private-network:4434/
+    tls:
+      ## TLS Certificate (PEM) ##
+      #
+      cert:
+        ## base64 ##
+        #
+        # Set this value using environment variables on
+        # - Linux/macOS:
+        #    $ export SERVE_ADMIN_TLS_CERT_BASE64=<value>
+        # - Windows Command Line (CMD):
+        #    > set SERVE_ADMIN_TLS_CERT_BASE64=<value>
+        #
+        base64: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tXG5NSUlEWlRDQ0FrMmdBd0lCQWdJRVY1eE90REFOQmdr...
+
+        ## path ##
+        #
+        # Set this value using environment variables on
+        # - Linux/macOS:
+        #    $ export SERVE_ADMIN_TLS_CERT_PATH=<value>
+        # - Windows Command Line (CMD):
+        #    > set SERVE_ADMIN_TLS_CERT_PATH=<value>
+        #
+        path: path/to/file.pem
+
+      ## Private Key (PEM) ##
+      #
+      key:
+        ## base64 ##
+        #
+        # Set this value using environment variables on
+        # - Linux/macOS:
+        #    $ export SERVE_ADMIN_TLS_KEY_BASE64=<value>
+        # - Windows Command Line (CMD):
+        #    > set SERVE_ADMIN_TLS_KEY_BASE64=<value>
+        #
+        base64: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tXG5NSUlEWlRDQ0FrMmdBd0lCQWdJRVY1eE90REFOQmdr...
+
+        ## path ##
+        #
+        # Set this value using environment variables on
+        # - Linux/macOS:
+        #    $ export SERVE_ADMIN_TLS_KEY_PATH=<value>
+        # - Windows Command Line (CMD):
+        #    > set SERVE_ADMIN_TLS_KEY_PATH=<value>
+        #
+        path: path/to/file.pem
+
+    ## request_log ##
     #
-    # Set this value using environment variables on
-    # - Linux/macOS:
-    #    $ export SERVE_ADMIN_BASE_URL=<value>
-    # - Windows Command Line (CMD):
-    #    > set SERVE_ADMIN_BASE_URL=<value>
-    #
-    base_url: https://kratos.private-network:4434/
+    request_log:
+      ## Disable health endpoints request logging ##
+      #
+      # Disable request logging for /health/alive and /health/ready endpoints
+      #
+      # Default value: false
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export SERVE_ADMIN_REQUEST_LOG_DISABLE_FOR_HEALTH=<value>
+      # - Windows Command Line (CMD):
+      #    > set SERVE_ADMIN_REQUEST_LOG_DISABLE_FOR_HEALTH=<value>
+      #
+      disable_for_health: false
 
 ## tracing ##
 #
@@ -1509,13 +1818,14 @@ tracing:
 
   ## provider ##
   #
-  # Set this to the tracing backend you wish to use. Supports Jaeger, Zipkin and DataDog. If omitted or empty, tracing will be disabled. Use environment variables to configure DataDog (see https://docs.datadoghq.com/tracing/setup/go/#configuration).
+  # Set this to the tracing backend you wish to use. Supports Jaeger, Zipkin, DataDog, elastic-apm and instana. If omitted or empty, tracing will be disabled. Use environment variables to configure DataDog (see https://docs.datadoghq.com/tracing/setup/go/#configuration).
   #
   # One of:
   # - jaeger
   # - zipkin
   # - datadog
   # - elastic-apm
+  # - instana
   #
   # Examples:
   # - jaeger
@@ -1599,6 +1909,19 @@ secrets:
   #
   cookie:
     - ipsumipsumipsumi
+
+  ## Secrets to use for encryption by cipher ##
+  #
+  # The first secret in the array is used for encryption data while all other keys are used to decrypt older data that were signed with.
+  #
+  # Set this value using environment variables on
+  # - Linux/macOS:
+  #    $ export SECRETS_CIPHER=<value>
+  # - Windows Command Line (CMD):
+  #    > set SECRETS_CIPHER=<value>
+  #
+  cipher:
+    - ipsumipsumipsumipsumipsumipsumip
 
   ## Default Encryption Signing Secrets ##
   #
@@ -1750,7 +2073,8 @@ hashers:
 
   ## Password hashing algorithm ##
   #
-  # One of the values: argon2, bcrypt
+  # One of the values: argon2, bcrypt.
+  # Any other hashes will be migrated to the set algorithm once an identity authenticates using their password.
   #
   # Default value: bcrypt
   #
@@ -1766,9 +2090,100 @@ hashers:
   #
   algorithm: argon2
 
+## Cipher Algorithm Configuration ##
+#
+ciphers:
+  ## ciphering algorithm ##
+  #
+  # One of the values: noop, aes, xchacha20-poly1305
+  #
+  # Default value: noop
+  #
+  # One of:
+  # - noop
+  # - aes
+  # - xchacha20-poly1305
+  #
+  # Set this value using environment variables on
+  # - Linux/macOS:
+  #    $ export CIPHERS_ALGORITHM=<value>
+  # - Windows Command Line (CMD):
+  #    > set CIPHERS_ALGORITHM=<value>
+  #
+  algorithm: noop
+
+## HTTP Cookie Configuration ##
+#
+# Configure the HTTP Cookies. Applies to both CSRF and session cookies.
+#
+cookies:
+  ## HTTP  Cookie Path ##
+  #
+  # Sets the session and CSRF cookie path. Use with care!
+  #
+  # Default value: /
+  #
+  # Set this value using environment variables on
+  # - Linux/macOS:
+  #    $ export COOKIES_PATH=<value>
+  # - Windows Command Line (CMD):
+  #    > set COOKIES_PATH=<value>
+  #
+  path: ''
+
+  ## HTTP Cookie Same Site Configuration ##
+  #
+  # Sets the session and CSRF cookie SameSite.
+  #
+  # Default value: Lax
+  #
+  # One of:
+  # - Strict
+  # - Lax
+  # - None
+  #
+  # Set this value using environment variables on
+  # - Linux/macOS:
+  #    $ export COOKIES_SAME_SITE=<value>
+  # - Windows Command Line (CMD):
+  #    > set COOKIES_SAME_SITE=<value>
+  #
+  same_site: Strict
+
+  ## HTTP Cookie Domain ##
+  #
+  # Sets the cookie domain for session and CSRF cookies. Useful when dealing with subdomains. Use with care!
+  #
+  # Set this value using environment variables on
+  # - Linux/macOS:
+  #    $ export COOKIES_DOMAIN=<value>
+  # - Windows Command Line (CMD):
+  #    > set COOKIES_DOMAIN=<value>
+  #
+  domain: ''
+
 ## session ##
 #
 session:
+  ## Session Lifespan ##
+  #
+  # Defines how long a session is active. Once that lifespan has been reached, the user needs to sign in again.
+  #
+  # Default value: 24h
+  #
+  # Examples:
+  # - 1h
+  # - 1m
+  # - 1s
+  #
+  # Set this value using environment variables on
+  # - Linux/macOS:
+  #    $ export SESSION_LIFESPAN=<value>
+  # - Windows Command Line (CMD):
+  #    > set SESSION_LIFESPAN=<value>
+  #
+  lifespan: 1h
+
   ## cookie ##
   #
   cookie:
@@ -1802,9 +2217,7 @@ session:
 
     ## Session Cookie Path ##
     #
-    # Sets the session cookie path. Use with care!
-    #
-    # Default value: /
+    # Sets the session cookie path. Use with care! Overrides `cookies.path`.
     #
     # Set this value using environment variables on
     # - Linux/macOS:
@@ -1814,9 +2227,9 @@ session:
     #
     path: ''
 
-    ## Cookie Same Site Configuration ##
+    ## Session Cookie SameSite Configuration ##
     #
-    # Default value: Lax
+    # Sets the session cookie SameSite. Overrides `cookies.same_site`.
     #
     # One of:
     # - Strict
@@ -1833,7 +2246,7 @@ session:
 
     ## Session Cookie Domain ##
     #
-    # Sets the session cookie domain. Useful when dealing with subdomains. Use with care!
+    # Sets the session cookie domain. Useful when dealing with subdomains. Use with care! Overrides `cookies.domain`.
     #
     # Set this value using environment variables on
     # - Linux/macOS:
@@ -1843,24 +2256,28 @@ session:
     #
     domain: ''
 
-  ## Session Lifespan ##
+  ## WhoAmI / ToSession Settings ##
   #
-  # Defines how long a session is active. Once that lifespan has been reached, the user needs to sign in again.
+  # Control how the `/sessions/whoami` endpoint is behaving.
   #
-  # Default value: 24h
-  #
-  # Examples:
-  # - 1h
-  # - 1m
-  # - 1s
-  #
-  # Set this value using environment variables on
-  # - Linux/macOS:
-  #    $ export SESSION_LIFESPAN=<value>
-  # - Windows Command Line (CMD):
-  #    > set SESSION_LIFESPAN=<value>
-  #
-  lifespan: 1h
+  whoami:
+    ## Required Authenticator Assurance Level ##
+    #
+    # Sets what Authenticator Assurance Level (used for 2FA) is required to access this feature. If set to `highest_available` then this endpoint requires the highest AAL the identity has set up. If set to `aal1` then the identity can access this feature without 2FA.
+    #
+    # Default value: highest_available
+    #
+    # One of:
+    # - aal1
+    # - highest_available
+    #
+    # Set this value using environment variables on
+    # - Linux/macOS:
+    #    $ export SESSION_WHOAMI_REQUIRED_AAL=<value>
+    # - Windows Command Line (CMD):
+    #    > set SESSION_WHOAMI_REQUIRED_AAL=<value>
+    #
+    required_aal: aal1
 
 ## The kratos version this config is written for. ##
 #
@@ -1899,6 +2316,8 @@ help: false
 
 ## sqa-opt-out ##
 #
+# This is a CLI flag and environment variable and can not be set using the config file.
+#
 # Default value: false
 #
 # Set this value using environment variables on
@@ -1910,6 +2329,8 @@ help: false
 sqa-opt-out: false
 
 ## watch-courier ##
+#
+# This is a CLI flag and environment variable and can not be set using the config file.
 #
 # Default value: false
 #
@@ -1923,7 +2344,7 @@ watch-courier: false
 
 ## Metrics port ##
 #
-# The port the courier's metrics endpoint listens on (0/disabled by default).
+# The port the courier's metrics endpoint listens on (0/disabled by default). This is a CLI flag and environment variable and can not be set using the config file.
 #
 # Minimum value: 0
 #
@@ -1941,6 +2362,8 @@ watch-courier: false
 expose-metrics-port: 4434
 
 ## config ##
+#
+# This is a CLI flag and environment variable and can not be set using the config file.
 #
 # Set this value using environment variables on
 # - Linux/macOS:
@@ -1963,10 +2386,20 @@ courier:
   smtp:
     ## SMTP connection string ##
     #
-    # This URI will be used to connect to the SMTP server. Use the query parameter to allow (`?skip_ssl_verify=true`) or disallow (`?skip_ssl_verify=false`) self-signed TLS certificates. Please keep in mind that any host other than localhost / 127.0.0.1 must use smtp over TLS (smtps) or the connection will not be possible.
+    # This URI will be used to connect to the SMTP server. Use the scheme smtps for implicit TLS sessions or smtp for explicit StartTLS/cleartext sessions. Please note that TLS is always enforced with certificate trust verification by default for security reasons on both schemes. With the smtp scheme you can use the query parameter (`?disable_starttls=true`) to allow cleartext sessions or (`?disable_starttls=false`) to enforce StartTLS (default behaviour). Additionally, use the query parameter to allow (`?skip_ssl_verify=true`) or disallow (`?skip_ssl_verify=false`) self-signed TLS certificates (default behaviour) on both implicit and explicit TLS sessions.
     #
     # Examples:
     # - smtps://foo:bar@my-mailserver:1234/?skip_ssl_verify=false
+    # - "smtp://foo:bar@my-mailserver:1234/?disable_starttls=true (NOT RECOMMENDED:
+    #   Cleartext smtp for devel and legacy infrastructure only)"
+    # - smtp://foo:bar@my-mailserver:1234/ (Explicit StartTLS with certificate trust
+    #   verification)
+    # - "smtp://foo:bar@my-mailserver:1234/?skip_ssl_verify=true (NOT RECOMMENDED:
+    #   Explicit StartTLS without certificate trust verification)"
+    # - smtps://foo:bar@my-mailserver:1234/ (Implicit TLS with certificate trust
+    #   verification)
+    # - "smtps://foo:bar@my-mailserver:1234/?skip_ssl_verify=true (NOT RECOMMENDED:
+    #   Implicit TLS without certificate trust verification)"
     #
     # Set this value using environment variables on
     # - Linux/macOS:
@@ -1990,6 +2423,46 @@ courier:
     #    > set COURIER_SMTP_FROM_NAME=<value>
     #
     from_name: Bob
+
+    ## SMTP Headers ##
+    #
+    # These headers will be passed in the SMTP conversation -- e.g. when using the AWS SES SMTP interface for cross-account sending.
+    #
+    # Examples:
+    # - X-SES-SOURCE-ARN: arn:aws:ses:us-west-2:123456789012:identity/example.com
+    #   X-SES-FROM-ARN: arn:aws:ses:us-west-2:123456789012:identity/example.com
+    #   X-SES-RETURN-PATH-ARN: arn:aws:ses:us-west-2:123456789012:identity/example.com
+    #
+    headers:
+      ## X-SES-SOURCE-ARN ##
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export COURIER_SMTP_HEADERS_X-SES-SOURCE-ARN=<value>
+      # - Windows Command Line (CMD):
+      #    > set COURIER_SMTP_HEADERS_X-SES-SOURCE-ARN=<value>
+      #
+      X-SES-SOURCE-ARN: arn:aws:ses:us-west-2:123456789012:identity/example.com
+
+      ## X-SES-FROM-ARN ##
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export COURIER_SMTP_HEADERS_X-SES-FROM-ARN=<value>
+      # - Windows Command Line (CMD):
+      #    > set COURIER_SMTP_HEADERS_X-SES-FROM-ARN=<value>
+      #
+      X-SES-FROM-ARN: arn:aws:ses:us-west-2:123456789012:identity/example.com
+
+      ## X-SES-RETURN-PATH-ARN ##
+      #
+      # Set this value using environment variables on
+      # - Linux/macOS:
+      #    $ export COURIER_SMTP_HEADERS_X-SES-RETURN-PATH-ARN=<value>
+      # - Windows Command Line (CMD):
+      #    > set COURIER_SMTP_HEADERS_X-SES-RETURN-PATH-ARN=<value>
+      #
+      X-SES-RETURN-PATH-ARN: arn:aws:ses:us-west-2:123456789012:identity/example.com
 
     ## SMTP Sender Address ##
     #

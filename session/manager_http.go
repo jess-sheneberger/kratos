@@ -3,6 +3,11 @@ package session
 import (
 	"context"
 	"net/http"
+	"net/url"
+
+	"github.com/ory/x/urlx"
+
+	"github.com/gofrs/uuid"
 
 	"github.com/pkg/errors"
 
@@ -20,6 +25,7 @@ type (
 	managerHTTPDependencies interface {
 		config.Provider
 		identity.PoolProvider
+		identity.PrivilegedPoolProvider
 		x.CookieProvider
 		x.CSRFProvider
 		PersistenceProvider
@@ -40,7 +46,7 @@ func NewManagerHTTP(r managerHTTPDependencies) *ManagerHTTP {
 }
 
 func (s *ManagerHTTP) AdminCreateAndIssueCookie(ctx context.Context, w http.ResponseWriter, r *http.Request, ss *Session) error {
-	if err := s.r.SessionPersister().CreateSession(ctx, ss); err != nil {
+	if err := s.r.SessionPersister().UpsertSession(ctx, ss); err != nil {
 		return err
 	}
 
@@ -76,8 +82,8 @@ func (s *ManagerHTTP) AdminCreateAndIssueCookie(ctx context.Context, w http.Resp
 	return nil
 }
 
-func (s *ManagerHTTP) CreateAndIssueCookie(ctx context.Context, w http.ResponseWriter, r *http.Request, ss *Session) error {
-	if err := s.r.SessionPersister().CreateSession(ctx, ss); err != nil {
+func (s *ManagerHTTP) UpsertAndIssueCookie(ctx context.Context, w http.ResponseWriter, r *http.Request, ss *Session) error {
+	if err := s.r.SessionPersister().UpsertSession(ctx, ss); err != nil {
 		return err
 	}
 
@@ -89,7 +95,11 @@ func (s *ManagerHTTP) CreateAndIssueCookie(ctx context.Context, w http.ResponseW
 }
 
 func (s *ManagerHTTP) IssueCookie(ctx context.Context, w http.ResponseWriter, r *http.Request, session *Session) error {
-	cookie, _ := s.r.CookieManager(r.Context()).Get(r, s.cookieName(ctx))
+	cookie, err := s.r.CookieManager(r.Context()).Get(r, s.cookieName(ctx))
+	// Fix for https://github.com/ory/kratos/issues/1695
+	if err != nil && cookie == nil {
+		return errors.WithStack(err)
+	}
 
 	if s.r.Config(ctx).SessionPath() != "" {
 		cookie.Options.Path = s.r.Config(ctx).SessionPath()
@@ -159,19 +169,19 @@ func (s *ManagerHTTP) extractToken(r *http.Request) string {
 func (s *ManagerHTTP) FetchFromRequest(ctx context.Context, r *http.Request) (*Session, error) {
 	token := s.extractToken(r)
 	if token == "" {
-		return nil, errors.WithStack(ErrNoActiveSessionFound)
+		return nil, errors.WithStack(NewErrNoActiveSessionFound())
 	}
 
 	se, err := s.r.SessionPersister().GetSessionByToken(ctx, token)
 	if err != nil {
 		if errors.Is(err, herodot.ErrNotFound) || errors.Is(err, sqlcon.ErrNoRows) {
-			return nil, errors.WithStack(ErrNoActiveSessionFound)
+			return nil, errors.WithStack(NewErrNoActiveSessionFound())
 		}
 		return nil, err
 	}
 
 	if !se.IsActive() {
-		return nil, errors.WithStack(ErrNoActiveSessionFound)
+		return nil, errors.WithStack(NewErrNoActiveSessionFound())
 	}
 
 	se.Identity = se.Identity.CopyWithoutCredentials()
@@ -198,4 +208,46 @@ func (s *ManagerHTTP) PurgeFromRequest(ctx context.Context, w http.ResponseWrite
 		return errors.WithStack(err)
 	}
 	return nil
+}
+
+func (s *ManagerHTTP) DoesSessionSatisfy(r *http.Request, sess *Session, requestedAAL string) error {
+	sess.SetAuthenticatorAssuranceLevel()
+	switch requestedAAL {
+	case string(identity.AuthenticatorAssuranceLevel1):
+		if sess.AuthenticatorAssuranceLevel >= identity.AuthenticatorAssuranceLevel1 {
+			return nil
+		}
+	case config.HighestAvailableAAL:
+		i, err := s.r.PrivilegedIdentityPool().GetIdentityConfidential(r.Context(), sess.IdentityID)
+		if err != nil {
+			return err
+		}
+
+		hasCredentials := make([]identity.CredentialsType, 0)
+		for ct := range i.Credentials {
+			hasCredentials = append(hasCredentials, ct)
+		}
+
+		available := identity.DetermineAAL(hasCredentials)
+		if sess.AuthenticatorAssuranceLevel >= available {
+			return nil
+		}
+
+		return NewErrAALNotSatisfied(
+			urlx.CopyWithQuery(urlx.AppendPaths(s.r.Config(r.Context()).SelfPublicURL(r), "/self-service/login/browser"), url.Values{"aal": {"aal2"}}).String())
+	}
+	return errors.Errorf("requested unknown aal: %s", requestedAAL)
+}
+
+func (s *ManagerHTTP) SessionAddAuthenticationMethod(ctx context.Context, sid uuid.UUID, methods ...identity.CredentialsType) error {
+	// Since we added the method, it also means that we have authenticated it
+	sess, err := s.r.SessionPersister().GetSession(ctx, sid)
+	if err != nil {
+		return err
+	}
+	for _, m := range methods {
+		sess.CompletedLoginFor(m)
+	}
+	sess.SetAuthenticatorAssuranceLevel()
+	return s.r.SessionPersister().UpsertSession(ctx, sess)
 }

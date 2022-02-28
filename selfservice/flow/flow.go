@@ -31,4 +31,5 @@ type Flow interface {
 	GetType() Type
 	GetRequestURL() string
 	GetLoginHint() string
+	AppendTo(*url.URL) *url.URL
 }

@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/ory/kratos/corp"
@@ -33,6 +34,7 @@ func init() {
 
 func NewConfigurationWithDefaults(t *testing.T) *config.Config {
 	c := config.MustNew(t, logrusx.New("", ""),
+		os.Stderr,
 		configx.WithValues(map[string]interface{}{
 			"log.level":                                      "trace",
 			config.ViperKeyDSN:                               dbal.SQLiteInMemory,
@@ -45,6 +47,7 @@ func NewConfigurationWithDefaults(t *testing.T) *config.Config {
 			config.ViperKeyCourierSMTPURL:                    "smtp://foo:bar@baz.com/",
 			config.ViperKeySelfServiceBrowserDefaultReturnTo: "https://www.ory.sh/redirect-not-set",
 			config.ViperKeyDefaultIdentitySchemaURL:          UnsetDefaultIdentitySchema,
+			config.ViperKeySecretsCipher:                     []string{"secret-thirty-two-character-long"},
 		}),
 		configx.SkipValidation(),
 	)
@@ -77,7 +80,7 @@ func NewRegistryDefaultWithDSN(t *testing.T, dsn string) (*config.Config, *drive
 	require.NoError(t, err)
 	reg.Config(context.Background()).MustSet("dev", true)
 	require.NoError(t, reg.Init(context.Background(), driver.SkipNetworkInit))
-	require.NoError(t, reg.Persister().NetworkMigrateUp(context.Background()))
+	require.NoError(t, reg.Persister().MigrateUp(context.Background())) // always migrate up
 
 	actual, err := reg.Persister().DetermineNetwork(context.Background())
 	require.NoError(t, err)

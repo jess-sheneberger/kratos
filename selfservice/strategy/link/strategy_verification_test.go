@@ -3,6 +3,7 @@ package link_test
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,6 +11,8 @@ import (
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/ory/x/urlx"
 
 	"github.com/ory/kratos/selfservice/strategy/link"
 	"github.com/ory/kratos/ui/node"
@@ -29,7 +32,6 @@ import (
 	"github.com/ory/x/assertx"
 	"github.com/ory/x/ioutilx"
 	"github.com/ory/x/sqlxx"
-	"github.com/ory/x/urlx"
 )
 
 func TestVerification(t *testing.T) {
@@ -78,55 +80,18 @@ func TestVerification(t *testing.T) {
 		return expect(t, hc, isAPI, isSPA, values, http.StatusOK)
 	}
 
+	t.Run("description=should set all the correct verification payloads after submission", func(t *testing.T) {
+		body := expectSuccess(t, nil, false, false, func(v url.Values) {
+			v.Set("email", "test@ory.sh")
+		})
+		testhelpers.SnapshotTExcept(t, json.RawMessage(gjson.Get(body, "ui.nodes").String()), []string{"0.attributes.value"})
+	})
+
 	t.Run("description=should set all the correct verification payloads", func(t *testing.T) {
 		c := testhelpers.NewClientWithCookies(t)
 		rs := testhelpers.GetVerificationFlow(t, c, public)
 
-		assertx.EqualAsJSONExcept(t, json.RawMessage(`[
-  {
-    "attributes": {
-      "disabled": false,
-      "name": "csrf_token",
-      "required": true,
-      "type": "hidden",
-      "value": ""
-    },
-    "group": "default",
-    "messages": [],
-    "meta": {},
-    "type": "input"
-  },
-  {
-    "attributes": {
-      "disabled": false,
-      "name": "email",
-      "required": true,
-      "type": "email"
-    },
-    "group": "link",
-    "messages": [],
-    "meta": {},
-    "type": "input"
-  },
-  {
-    "attributes": {
-      "disabled": false,
-      "name": "method",
-      "type": "submit",
-      "value": "link"
-    },
-    "group": "link",
-    "messages": [],
-    "meta": {
-      "label": {
-        "id": 1070005,
-        "text": "Submit",
-        "type": "info"
-      }
-    },
-    "type": "input"
-  }
-]`), rs.Ui.Nodes, []string{"0.attributes.value"})
+		testhelpers.SnapshotTExcept(t, rs.Ui.Nodes, []string{"0.attributes.value"})
 		assert.EqualValues(t, public.URL+verification.RouteSubmitFlow+"?flow="+rs.Id, rs.Ui.Action)
 		assert.Empty(t, rs.Ui.Messages)
 	})
@@ -236,7 +201,7 @@ func TestVerification(t *testing.T) {
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 		assert.Contains(t, res.Request.URL.String(), conf.SelfServiceFlowVerificationUI().String()+"?flow=")
 
-		sr, _, err := testhelpers.NewSDKCustomClient(public, c).V0alpha1Api.GetSelfServiceVerificationFlow(context.Background()).Id(res.Request.URL.Query().Get("flow")).Execute()
+		sr, _, err := testhelpers.NewSDKCustomClient(public, c).V0alpha2Api.GetSelfServiceVerificationFlow(context.Background()).Id(res.Request.URL.Query().Get("flow")).Execute()
 		require.NoError(t, err)
 
 		require.Len(t, sr.Ui.Messages, 1)
@@ -286,7 +251,7 @@ func TestVerification(t *testing.T) {
 		assert.Contains(t, res.Request.URL.String(), conf.SelfServiceFlowVerificationUI().String())
 		assert.Contains(t, res.Request.URL.String(), gjson.Get(body, "id").String())
 
-		_, _, err = testhelpers.NewSDKCustomClient(public, c).V0alpha1Api.GetSelfServiceVerificationFlow(context.Background()).Id(res.Request.URL.Query().Get("flow")).Execute()
+		_, _, err = testhelpers.NewSDKCustomClient(public, c).V0alpha2Api.GetSelfServiceVerificationFlow(context.Background()).Id(res.Request.URL.Query().Get("flow")).Execute()
 		require.Error(t, err, "410 Gone")
 	})
 
@@ -334,7 +299,7 @@ func TestVerification(t *testing.T) {
 			assert.EqualValues(t, verificationEmail, address.Value)
 			assert.True(t, address.Verified)
 			assert.EqualValues(t, identity.VerifiableAddressStatusCompleted, address.Status)
-			assert.True(t, time.Time(address.VerifiedAt).Add(time.Second*5).After(time.Now()))
+			assert.True(t, time.Time(*address.VerifiedAt).Add(time.Second*5).After(time.Now()))
 		}
 
 		var values = func(v url.Values) {
@@ -352,6 +317,47 @@ func TestVerification(t *testing.T) {
 		t.Run("type=api", func(t *testing.T) {
 			check(t, expectSuccess(t, nil, true, false, values))
 		})
+	})
+
+	t.Run("description=should verify an email address when the link is opened in another browser", func(t *testing.T) {
+		var check = func(t *testing.T, actual string) {
+			message := testhelpers.CourierExpectMessage(t, reg, verificationEmail, "Please verify your email address")
+			verificationLink := testhelpers.CourierExpectLinkInMessage(t, message, 1)
+
+			// we changed the email links to point at the UI
+			vl, err := url.Parse(verificationLink)
+			assert.NoError(t, err)
+			
+			// this is where the UI exchanges the verificiation token for a Kratos cookie
+			bl, err := url.Parse(public.URL+verification.RouteSubmitFlow)
+			assert.NoError(t, err)
+
+			rvl := urlx.CopyWithQuery(bl, vl.Query())	
+
+			cl := testhelpers.NewClientWithCookies(t)
+			res, err := cl.Get(rvl.String())
+			require.NoError(t, err)
+			body := string(ioutilx.MustReadAll(res.Body))
+			require.NoError(t, res.Body.Close())
+
+			require.Len(t, cl.Jar.Cookies(urlx.ParseOrPanic(public.URL)), 1)
+			assert.Contains(t, cl.Jar.Cookies(urlx.ParseOrPanic(public.URL))[0].Name, x.CSRFTokenName)
+
+			actualRes, err := cl.Get(public.URL + verification.RouteGetFlow + "?id=" + gjson.Get(body, "id").String())
+			require.NoError(t, err)
+			actualBody := string(ioutilx.MustReadAll(actualRes.Body))
+			require.NoError(t, actualRes.Body.Close())
+			assert.Equal(t, http.StatusOK, actualRes.StatusCode)
+
+			assertx.EqualAsJSON(t, body, actualBody)
+			assert.EqualValues(t, "passed_challenge", gjson.Get(actualBody, "state").String())
+		}
+
+		var values = func(v url.Values) {
+			v.Set("email", verificationEmail)
+		}
+
+		check(t, expectSuccess(t, nil, false, false, values))
 	})
 
 	newValidFlow := func(t *testing.T, requestURL string) (*verification.Flow, *link.VerificationToken) {
@@ -390,7 +396,7 @@ func TestVerification(t *testing.T) {
 
 		res, err := client.Post(public.URL+verification.RouteSubmitFlow+"?"+url.Values{"flow": {flow.ID.String()}, "token": {token.Token}}.Encode(), "application/json", bytes.NewBuffer([]byte(body)))
 		require.NoError(t, err)
-		assert.Equal(t, http.StatusFound, res.StatusCode)
+		assert.Equal(t, http.StatusSeeOther, res.StatusCode)
 		redirectURL, err := res.Location()
 		require.NoError(t, err)
 		assert.Equal(t, returnToURL, redirectURL.String())

@@ -2,7 +2,6 @@ package recovery
 
 import (
 	"net/http"
-	"log"
 	"time"
 
 	"github.com/ory/nosurf"
@@ -91,7 +90,7 @@ func (h *Handler) RegisterAdminRoutes(admin *x.RouterAdmin) {
 	admin.POST(RouteSubmitFlow, x.RedirectToPublicRoute(h.d))
 }
 
-// swagger:route GET /self-service/recovery/api v0alpha1 initializeSelfServiceRecoveryFlowWithoutBrowser
+// swagger:route GET /self-service/recovery/api v0alpha2 initializeSelfServiceRecoveryFlowWithoutBrowser
 //
 // Initialize Recovery Flow for APIs, Services, Apps, ...
 //
@@ -136,7 +135,16 @@ func (h *Handler) initAPIFlow(w http.ResponseWriter, r *http.Request, _ httprout
 	h.d.Writer().Write(w, r, req)
 }
 
-// swagger:route GET /self-service/recovery/browser v0alpha1 initializeSelfServiceRecoveryFlowForBrowsers
+// nolint:deadcode,unused
+// swagger:parameters initializeSelfServiceRecoveryFlowForBrowsers
+type initializeSelfServiceRecoveryFlowWithoutBrowser struct {
+	// The URL to return the browser to after the flow was completed.
+	//
+	// in: query
+	ReturnTo string `json:"return_to"`
+}
+
+// swagger:route GET /self-service/recovery/browser v0alpha2 initializeSelfServiceRecoveryFlowForBrowsers
 //
 // Initialize Recovery Flow for Browsers
 //
@@ -176,7 +184,7 @@ func (h *Handler) initBrowserFlow(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	redirTo := f.AppendTo(h.d.Config(r.Context()).SelfServiceFlowRecoveryUI()).String()
-	x.AcceptToRedirectOrJson(w, r, h.d.Writer(), f, redirTo)
+	x.AcceptToRedirectOrJSON(w, r, h.d.Writer(), f, redirTo)
 }
 
 // nolint:deadcode,unused
@@ -201,7 +209,7 @@ type getSelfServiceRecoveryFlow struct {
 	Cookies string `json:"cookie"`
 }
 
-// swagger:route GET /self-service/recovery/flows v0alpha1 getSelfServiceRecoveryFlow
+// swagger:route GET /self-service/recovery/flows v0alpha2 getSelfServiceRecoveryFlow
 //
 // Get Recovery Flow
 //
@@ -257,20 +265,17 @@ func (h *Handler) fetch(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 
 	if f.ExpiresAt.Before(time.Now().UTC()) {
 		if f.Type == flow.TypeBrowser {
-			log.Printf("DEBUGDEBUG: Error1\n")
 			h.d.Writer().WriteError(w, r, errors.WithStack(x.ErrGone.
 				WithReason("The recovery flow has expired. Redirect the user to the recovery flow init endpoint to initialize a new recovery flow.").
 				WithDetail("redirect_to", urlx.AppendPaths(h.d.Config(r.Context()).SelfPublicURL(r), RouteInitBrowserFlow).String())))
 			return
 		}
-		log.Printf("DEBUGDEBUG: Error2\n")
 		h.d.Writer().WriteError(w, r, errors.WithStack(x.ErrGone.
 			WithReason("The recovery flow has expired. Call the recovery flow init API endpoint to initialize a new recovery flow.").
 			WithDetail("api", urlx.AppendPaths(h.d.Config(r.Context()).SelfPublicURL(r), RouteInitAPIFlow).String())))
 		return
 	}
 
-	log.Printf("DEBUGDEBUG: Flow: %#v\n", f)
 	h.d.Writer().Write(w, r, f)
 }
 
@@ -304,7 +309,7 @@ type submitSelfServiceRecoveryFlow struct {
 // nolint:deadcode,unused
 type submitSelfServiceRecoveryFlowBody struct{}
 
-// swagger:route POST /self-service/recovery v0alpha1 submitSelfServiceRecoveryFlow
+// swagger:route POST /self-service/recovery v0alpha2 submitSelfServiceRecoveryFlow
 //
 // Complete Recovery Flow
 //
