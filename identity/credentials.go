@@ -50,6 +50,7 @@ const (
 	CredentialsTypeTOTP     CredentialsType = "totp"
 	CredentialsTypeLookup   CredentialsType = "lookup_secret"
 	CredentialsTypeWebAuthn CredentialsType = "webauthn"
+	CredentialsTypeAdmin    CredentialsType = "admin_issued"
 )
 
 const (

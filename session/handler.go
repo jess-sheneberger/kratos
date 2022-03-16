@@ -124,7 +124,7 @@ func (h *Handler) issueToken(w http.ResponseWriter, r *http.Request, _ httproute
 		return
 	}
 
-	s, err := NewActiveSession(id, h.r.Config(ctx), time.Now().UTC(), identity.CredentialsTypeNone)
+	s, err := NewActiveSession(id, h.r.Config(ctx), time.Now().UTC(), identity.CredentialsTypeAdmin)
 	if err != nil {
 		h.r.Writer().WriteErrorCode(w, r, http.StatusInternalServerError, err)
 		return
