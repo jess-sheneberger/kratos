@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"log"
 
 	"github.com/pkg/errors"
 
@@ -103,6 +104,7 @@ func (s *Session) CompletedLoginFor(method identity.CredentialsType) {
 
 func (s *Session) SetAuthenticatorAssuranceLevel() {
 	cts := make([]identity.CredentialsType, len(s.AMR))
+	log.Printf("DEBUGDEBUG: SetAuthenticatorAssuranceLevel s.AMR: %#v\n", s.AMR)
 	for k := range s.AMR {
 		cts[k] = s.AMR[k].Method
 	}
