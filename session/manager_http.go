@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"log"
 
 	"github.com/ory/x/urlx"
 
@@ -212,8 +213,10 @@ func (s *ManagerHTTP) PurgeFromRequest(ctx context.Context, w http.ResponseWrite
 
 func (s *ManagerHTTP) DoesSessionSatisfy(r *http.Request, sess *Session, requestedAAL string) error {
 	sess.SetAuthenticatorAssuranceLevel()
+	log.Printf("DEBUGDEBUG: requestedAAL is '%s', sess.AuthenticatorAssuranceLevel is '%s'\n", requestedAAL, sess.AuthenticatorAssuranceLevel)
 	switch requestedAAL {
 	case string(identity.AuthenticatorAssuranceLevel1):
+		log.Printf("DEBUGDEBUG: sess.AuthenticatorAssuranceLevel >= identity.AuthenticatorAssuranceLevel1 = %v\n", sess.AuthenticatorAssuranceLevel >= identity.AuthenticatorAssuranceLevel1)
 		if sess.AuthenticatorAssuranceLevel >= identity.AuthenticatorAssuranceLevel1 {
 			return nil
 		}
