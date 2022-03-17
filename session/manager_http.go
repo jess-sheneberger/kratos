@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/url"
-	"log"
 
 	"github.com/ory/x/urlx"
 

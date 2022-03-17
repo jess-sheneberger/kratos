@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-	"log"
 
 	"github.com/pkg/errors"
 
