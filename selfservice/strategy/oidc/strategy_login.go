@@ -164,6 +164,10 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow, 
 	}
 
 	state := x.NewUUID().String()
+	s.d.Logger().WithField("state", state).
+		WithField("f", f).
+		WithField("p.Traits", p.Traits).
+		Debug("DEBUGDEBUG OIDC login strategy about to Pause()")
 	if err := s.d.ContinuityManager().Pause(r.Context(), w, r, sessionName,
 		continuity.WithPayload(&authCodeContainer{
 			State:  state,
